@@ -145,6 +145,7 @@ ARTIFACTS = tuple(
     for step in json.loads(DNA_JSON)["execution_matrix"]
     for output in step["produces"]
 )
+OUT_NAME = json.loads(DNA_JSON)["activation"]["output_dir"]
 
 
 def _dna() -> dict[str, Any]:
@@ -170,7 +171,7 @@ def _language_for_path(path: Path, detect: Any = None) -> str | None:
     if detect is not None:
         try:
             found = detect(str(path))
-        except Exception:
+        except Exception:  # Grammar detection is an optional third-party boundary.
             found = None
         if found:
             return found
@@ -444,8 +445,6 @@ def _pack(out_dir: Path) -> Any:
     worse than no declaration, so the cache is redirected before the first grammar is
     ever requested.
     """
-    import importlib
-
     pack = importlib.import_module("tree_sitter_language_pack")
     pack.configure(pack.PackConfig(cache_dir=str(out_dir / "grammars")))
     return pack
@@ -1235,7 +1234,7 @@ def _connect_tables(out_dir: Path, views: dict) -> tuple[Any, list]:
                 f'CREATE TABLE "{name}" AS SELECT unnest({spec["collection"]}, '
                 f"recursive := true) FROM read_json_auto('{path}')"
             )
-        except Exception as error:
+        except (OSError, ValueError, duckdb.Error) as error:
             absent.append(f"{name} ({type(error).__name__})")
     connection.execute("SET enable_external_access=false")
     return connection, absent
@@ -1280,7 +1279,7 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
     # literal text and answered with a row count, which reads like an answer.
     try:
         statements = duckdb.extract_statements(request)
-    except Exception:
+    except duckdb.Error:
         statements = []
     if statements:
         if len(statements) != 1 or statements[0].type.name != "SELECT":
@@ -1306,7 +1305,7 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
 
     try:
         cursor = connection.execute(sql)
-    except Exception as error:
+    except duckdb.Error as error:
         print(f"[ISR] {type(error).__name__}: {error}", file=sys.stderr)
         if absent:
             print(f"[ISR] absent tables: {absent}", file=sys.stderr)

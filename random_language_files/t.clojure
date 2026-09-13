@@ -1,0 +1,7 @@
+(ns gamma.core
+  (:gen-class))
+
+(defn delta [] "returns a value")
+
+(defn helper []
+  (delta))

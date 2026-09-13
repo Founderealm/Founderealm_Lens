@@ -42,9 +42,8 @@ DNA_JSON = r"""
         "genome_version": "0.3.0",
         "map_schema_version": "1.2.0"
   },
-  "activation": {
+    "activation": {
     "output_dir": "isr",
-        "max_file_bytes": 2097152,
         "history_runs": 5
   },
       "runtime_package": {
@@ -125,6 +124,14 @@ DNA_JSON = r"""
     "call_exact": ["new_expression", "macro_invocation"],
     "symbol_suffixes": ["_definition", "_declaration", "_item", "_specifier", "_specification", "_set"],
     "symbol_exact": ["class", "method", "module", "singleton_method", "rule_set"],
+    "_binding_why": "Compiled languages declare with a keyword and the node type says so. Script languages bind a name to a value - const W = () => {}, handler = lambda x: x - and the wrapper node type says only lexical_declaration, which stripped to the kind 'lexical' and named nothing useful. An arrow function inside an object literal was missed entirely. Half of modern code declares this way.",
+    "binding_types": ["variable_declarator", "assignment", "assignment_statement", "var_spec", "pair", "field_definition", "public_field_definition"],
+    "binding_name_fields": ["name", "left", "key"],
+    "binding_value_fields": ["value", "right"],
+    "binding_unwrap": ["expression_list", "parenthesized_expression"],
+    "value_function_contains": ["arrow_function", "function", "lambda", "func_literal", "closure"],
+    "value_class_contains": ["class"],
+    "binding_wrappers": ["lexical_declaration", "variable_declaration", "var_declaration", "expression_statement"],
     "name_fields": ["name", "declarator", "function", "alias", "path"],
     "name_child_types": ["identifier", "type_identifier", "field_identifier", "simple_identifier", "property_identifier", "constant", "constructor_name"]
   }
@@ -237,19 +244,19 @@ def _normalized_package_name(name: str) -> str:
     return name.lower().replace("_", "-").replace(".", "-")
 
 
-def _installed_distributions(runtime_dir: Path) -> dict[str, Any]:
+def _installed_distributions(dependencies_dir: Path) -> dict[str, Any]:
     return {
         _normalized_package_name(distribution.metadata["Name"]): distribution
-        for distribution in distributions(path=[str(runtime_dir)])
+        for distribution in distributions(path=[str(dependencies_dir)])
         if distribution.metadata["Name"]
     }
 
 
-def _runtime_matches_lock(runtime_dir: Path, lock: list[dict[str, str]]) -> bool:
-    runtime_dir = runtime_dir.resolve()
-    if not runtime_dir.exists():
+def _dependencies_match_lock(dependencies_dir: Path, lock: list[dict[str, str]]) -> bool:
+    dependencies_dir = dependencies_dir.resolve()
+    if not dependencies_dir.exists():
         return False
-    installed = _installed_distributions(runtime_dir)
+    installed = _installed_distributions(dependencies_dir)
     for item in lock:
         distribution = installed.get(_normalized_package_name(item["name"]))
         if distribution is None or distribution.version != item["version"] or distribution.files is None:
@@ -259,7 +266,7 @@ def _runtime_matches_lock(runtime_dir: Path, lock: list[dict[str, str]]) -> bool
             if recorded_hash is None:
                 continue
             installed_path = Path(distribution.locate_file(package_path)).resolve()
-            if runtime_dir != installed_path and runtime_dir not in installed_path.parents:
+            if dependencies_dir != installed_path and dependencies_dir not in installed_path.parents:
                 return False
             try:
                 digest = hashlib.new(recorded_hash.mode, installed_path.read_bytes()).digest()
@@ -340,14 +347,14 @@ def _download_verified_wheels(
 
 
 def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, Any]:
-    runtime_dir = output_dir / "runtime"
+    dependencies_dir = output_dir / "dependencies"
     cache_dir = output_dir / "cache"
-    sys.path.insert(0, str(runtime_dir))
+    sys.path.insert(0, str(dependencies_dir))
     lock = dependency_gene["packages"]
     lock_path = output_dir / "dependency-lock.json"
     if (
-        _runtime_matches_lock(runtime_dir, lock)
-        and PathFinder.find_spec("tree_sitter_language_pack", [str(runtime_dir)]) is not None
+        _dependencies_match_lock(dependencies_dir, lock)
+        and PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)]) is not None
     ):
         if lock_path.exists():
             return json.loads(lock_path.read_text(encoding="utf-8"))
@@ -359,7 +366,7 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
         dependency_gene["registry"],
         lock,
     )
-    staging_dir = output_dir / "runtime.next"
+    staging_dir = output_dir / "dependencies.next"
     shutil.rmtree(staging_dir, ignore_errors=True)
     command = [
         *_pip_command(),
@@ -372,11 +379,11 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
         *(str(wheel) for wheel in wheels),
     ]
     completed = subprocess.run(command, check=False)
-    if completed.returncode != 0 or not _runtime_matches_lock(staging_dir, lock):
+    if completed.returncode != 0 or not _dependencies_match_lock(staging_dir, lock):
         shutil.rmtree(staging_dir, ignore_errors=True)
-        raise RuntimeError("verified parser runtime installation failed; host source was not modified")
-    shutil.rmtree(runtime_dir, ignore_errors=True)
-    staging_dir.replace(runtime_dir)
+        raise RuntimeError("verified parser dependencies installation failed; host source was not modified")
+    shutil.rmtree(dependencies_dir, ignore_errors=True)
+    staging_dir.replace(dependencies_dir)
     # The wheels are installed and the runtime has been verified file by file against
     # their recorded hashes, with the provenance kept in dependency-lock.json. Nothing
     # reads these again: a later bootstrap either finds the runtime already matching the
@@ -384,8 +391,8 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     # repository, held for no reader.
     shutil.rmtree(cache_dir, ignore_errors=True)
     importlib.invalidate_caches()
-    if PathFinder.find_spec("tree_sitter_language_pack", [str(runtime_dir)]) is None:
-        raise RuntimeError("parser bootstrap completed but the local runtime is unavailable")
+    if PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)]) is None:
+        raise RuntimeError("parser bootstrap completed but local dependencies are unavailable")
     result = {
         "status": "VERIFIED",
         "method": "exact versions and PyPI release SHA-256 over TLS",
@@ -461,6 +468,23 @@ def _symbol_kind(node_type: str, rules: dict[str, Any]) -> str | None:
     return None
 
 
+def _bound_kind(value: Any, rules: dict[str, Any]) -> tuple[str, Any] | None:
+    """What a binding binds, when it binds something declarable.
+
+    Returns (kind, the node that was bound) or None. Go and Lua wrap the bound value in
+    an expression list, so one level of that is unwrapped before asking. A value that is
+    a call - Python's Alpha = type(...) - binds something built at runtime and is
+    deliberately not reported as a declaration: the call itself is already a call site.
+    """
+    if value.type in rules["binding_unwrap"] and value.named_children:
+        value = value.named_children[0]
+    if any(token in value.type for token in rules["value_class_contains"]):
+        return "class", value
+    if any(token in value.type for token in rules["value_function_contains"]):
+        return "function", value
+    return None
+
+
 def _is_import(node_type: str, rules: dict[str, Any]) -> bool:
     return any(token in node_type for token in rules["import_contains"])
 
@@ -492,6 +516,7 @@ def _extract_tree(
     imports: list[dict[str, Any]] = []
     calls: list[dict[str, Any]] = []
     discovered: dict[str, int] = {}
+    claimed: set = set()
     skip = tuple(rules["skip_suffixes"])
     # (node, an ancestor already counted as an import). Containers nest: Go declares
     # import_declaration > import_spec and Kotlin import_list > import_header, and
@@ -507,7 +532,7 @@ def _extract_tree(
     while stack:
         node, inside_import = stack.pop()
         node_type = node.type
-        claimed = False
+        node_claimed = False
 
         if not node_type.endswith(skip) and not any(
             token in node_type for token in rules["skip_contains"]
@@ -518,7 +543,7 @@ def _extract_tree(
                                            syntax=node_type,
                                            statement=_node_text(node, source)))
                     discovered[node_type] = discovered.get(node_type, 0) + 1
-                claimed = True
+                node_claimed = True
             elif _is_call(node_type, rules):
                 target = next(
                     (found for field in rules["callee_fields"]
@@ -537,7 +562,31 @@ def _extract_tree(
                 calls.append(_record(node, relative_path, language=language,
                                      target=target_text))
                 discovered[node_type] = discovered.get(node_type, 0) + 1
-            else:
+            elif node_type in rules["binding_types"]:
+                value = next(
+                    (found for field in rules["binding_value_fields"]
+                     if (found := node.child_by_field_name(field)) is not None),
+                    None,
+                )
+                bound = _bound_kind(value, rules) if value is not None else None
+                if bound is not None:
+                    kind, value_node = bound
+                    name = next(
+                        (_node_text(found, source, 160)
+                         for field in rules["binding_name_fields"]
+                         if (found := node.child_by_field_name(field)) is not None),
+                        "<anonymous>",
+                    )
+                    symbols.append(_record(node, relative_path, language=language,
+                                           kind=kind, name=name,
+                                           evidence="derived_binding"))
+                    discovered[f"bind:{node_type}"] = discovered.get(f"bind:{node_type}", 0) + 1
+                    # The bound value is reported once, under the name it was given. Left
+                    # unclaimed, `let T = class {}` emitted both the binding and the
+                    # anonymous class inside it. Its body is still walked, so methods
+                    # within it are still found.
+                    claimed.add(value_node.id)
+            elif node_type not in rules["binding_wrappers"] and node.id not in claimed:
                 kind = _symbol_kind(node_type, rules)
                 if kind is not None:
                     symbols.append(_record(node, relative_path, language=language,
@@ -547,7 +596,7 @@ def _extract_tree(
                     discovered[node_type] = discovered.get(node_type, 0) + 1
 
         stack.extend(
-            (child, inside_import or claimed) for child in reversed(node.named_children)
+            (child, inside_import or node_claimed) for child in reversed(node.named_children)
         )
     return symbols, imports, calls, discovered
 
@@ -580,15 +629,12 @@ def _parse_file(
     rules: dict[str, Any],
     get_parser: Any,
     parsers: dict[str, Any],
-    max_bytes: int,
 ) -> tuple[dict[str, Any] | None, list, list, list, dict[str, int], str | None]:
     relative_path = path.relative_to(root).as_posix()
     try:
         if get_parser is None:
             raise RuntimeError("parser runtime is unavailable")
         size = path.stat().st_size
-        if size > max_bytes:
-            return None, [], [], [], {}, f"larger than {max_bytes} bytes"
         source = path.read_bytes()
         parser = parsers.get(language)
         if parser is None:
@@ -960,7 +1006,7 @@ def _run_capture(root: Path) -> int:
             path.relative_to(out).as_posix() for path in out.rglob("*.json")
         )
         if relative not in produced
-        and not relative.startswith(("runtime/", "cache/", "grammars/"))
+        and not relative.startswith(("dependencies/", "dependencies.next/", "cache/", "grammars/"))
         and relative not in seed_owned
     )
 
@@ -1017,12 +1063,27 @@ def _connect_tables(out_dir: Path, views: dict) -> tuple[Any, list]:
 
     connection = duckdb.connect()
     absent = []
+    empty_columns = {
+        "file": '"file" VARCHAR, "language" VARCHAR, "bytes" BIGINT, "sha256" VARCHAR, "parse_status" VARCHAR, "evidence" VARCHAR, "capability" VARCHAR',
+        "symbol": '"file" VARCHAR, "line" INTEGER, "column" INTEGER, "end_line" INTEGER, "end_column" INTEGER, "start_byte" BIGINT, "end_byte" BIGINT, "evidence" VARCHAR, "language" VARCHAR, "kind" VARCHAR, "name" VARCHAR',
+        "import": '"file" VARCHAR, "line" INTEGER, "column" INTEGER, "end_line" INTEGER, "end_column" INTEGER, "start_byte" BIGINT, "end_byte" BIGINT, "evidence" VARCHAR, "language" VARCHAR, "syntax" VARCHAR, "statement" VARCHAR',
+        "call": '"file" VARCHAR, "line" INTEGER, "column" INTEGER, "end_line" INTEGER, "end_column" INTEGER, "start_byte" BIGINT, "end_byte" BIGINT, "evidence" VARCHAR, "language" VARCHAR, "target" VARCHAR',
+        "dependency": '"from" VARCHAR, "to" VARCHAR, "resolution" VARCHAR, "evidence" VARCHAR',
+        "unresolved": '"file" VARCHAR, "statement" VARCHAR, "evidence" VARCHAR',
+        "test": '"file" VARCHAR, "language" VARCHAR, "discovery" VARCHAR',
+        "impact": '"file" VARCHAR, "depth" INTEGER, "evidence" VARCHAR',
+        "skipped": '"file" VARCHAR, "reason" VARCHAR',
+    }
     for name, spec in views.items():
         path = out_dir / spec["artifact"]
         if not path.is_file():
             absent.append(name)
             continue
         try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not payload.get(spec["collection"]):
+                connection.execute(f'CREATE TABLE "{name}" ({empty_columns[name]})')
+                continue
             connection.execute(
                 f'CREATE TABLE "{name}" AS SELECT unnest({spec["collection"]}, '
                 f"recursive := true) FROM read_json_auto('{path}')"
@@ -1132,10 +1193,10 @@ def _write_search_recipe(output_dir: Path, dna: dict[str, Any]) -> None:
     (output_dir / "search.py").write_text(
         "#!/usr/bin/env python3\n"
         '"""ISR query recipe: a read-only relational surface over the artifacts."""\n'
-        "import re\nimport sys\nfrom pathlib import Path\nfrom typing import Any\n\n"
+        "import json\nimport re\nimport sys\nfrom pathlib import Path\nfrom typing import Any\n\n"
         "ROOT = Path(__file__).resolve().parents[1]\n"
         f"OUT = ROOT / {out_name!r}\n"
-        "sys.path.insert(0, str(OUT / 'runtime'))\n\n"
+        "sys.path.insert(0, str(OUT / 'dependencies'))\n\n"
         f"VIEWS = {views!r}\n\n" + helpers + "\n\n"
         "if __name__ == '__main__':\n"
         "    connection, missing = _connect_tables(OUT, VIEWS)\n"
@@ -1336,7 +1397,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
             _classify_files,
             _normalized_package_name,
             _installed_distributions,
-            _runtime_matches_lock,
+            _dependencies_match_lock,
             _pip_command,
             _download_verified_wheels,
             _bootstrap,
@@ -1346,13 +1407,13 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
             _pack,
             _normalized_package_name,
             _installed_distributions,
-            _runtime_matches_lock,
+            _dependencies_match_lock,
             _pip_command,
             _download_verified_wheels,
             _bootstrap,
             _negotiate_capabilities,
         ),
-        "parsing": shared_primitives + (_pack, _node_text, _node_name, _record, _symbol_kind,
+        "parsing": shared_primitives + (_pack, _node_text, _node_name, _record, _symbol_kind, _bound_kind,
                                        _is_import, _is_call, _extract_tree, _parse_file),
         "dependencies": shared_primitives + (_dependency_graph,),
         "tests": shared_primitives + (_language_for_path, _discover_tests),
@@ -1368,9 +1429,9 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
         ),
     }
     lens_recipes = {
-        "inventory": "dna = _dna(); _bootstrap(OUT, dna['dependencies']); sys.path.insert(0, str(OUT / 'runtime')); importlib.invalidate_caches(); files, mode = _candidate_files(ROOT, OUT, dna); supported, unsupported = _classify_files(files, dna, _pack(OUT).detect_language_from_path)\n_write_json(OUT / 'inventory.json', {'files': [path.relative_to(ROOT).as_posix() for path in files], 'mode': mode, 'supported': [{'file': path.relative_to(ROOT).as_posix(), 'language': language} for path, language in supported], 'unsupported': unsupported})",
-        "capability": "dna = _dna(); inventory = json.loads((OUT / 'inventory.json').read_text()); runtime = _bootstrap(OUT, dna['dependencies']) if inventory['supported'] else {'status': 'NOT_REQUIRED', 'packages': []}; pack = _pack(OUT) if inventory['supported'] else None; languages = _negotiate_capabilities({item['language'] for item in inventory['supported']}, pack.get_parser) if pack else {}\n_write_json(OUT / 'capabilities.json', {'dependency_provenance': runtime, 'languages': languages, 'syntax_rules': dna['syntax']})",
-        "parsing": "dna = _dna(); rules = dna['syntax']; inventory = json.loads((OUT / 'inventory.json').read_text()); capabilities = json.loads((OUT / 'capabilities.json').read_text())['languages']; sys.path.insert(0, str(OUT / 'runtime')); importlib.invalidate_caches(); parser = _pack(OUT).get_parser; records, parsers = {'files': [], 'symbols': [], 'imports': [], 'calls': [], 'skipped': [], 'language_counts': {}, 'discovered_node_types': {}}, {}\nfor item in inventory['supported']:\n    path, language = ROOT / item['file'], item['language']\n    capability = capabilities.get(language, {})\n    if capability.get('status') != 'available': records['skipped'].append({'file': item['file'], 'reason': capability.get('reason', 'grammar was not probed')}); continue\n    record, symbols, imports, calls, discovered, error = _parse_file(path, ROOT, language, rules, parser, parsers, dna['activation']['max_file_bytes'])\n    if error or record is None: records['skipped'].append({'file': item['file'], 'reason': error or 'parser returned no file record'}); continue\n    records['files'].append(record); records['symbols'].extend(symbols); records['imports'].extend(imports); records['calls'].extend(calls); records['language_counts'][language] = records['language_counts'].get(language, 0) + 1\n    seen = records['discovered_node_types'].setdefault(language, {})\n    for node_type, count in discovered.items(): seen[node_type] = seen.get(node_type, 0) + count\nfor name in ('files', 'symbols', 'imports', 'calls'): _write_json(OUT / 'maps' / f'{name}.json', {name: records[name]})\n_write_json(OUT / 'parse_summary.json', {key: records[key] for key in ('skipped', 'language_counts', 'discovered_node_types')})",
+        "inventory": "dna = _dna(); _bootstrap(OUT, dna['dependencies']); sys.path.insert(0, str(OUT / 'dependencies')); importlib.invalidate_caches(); files, mode = _candidate_files(ROOT, OUT, dna); supported, unsupported = _classify_files(files, dna, _pack(OUT).detect_language_from_path)\n_write_json(OUT / 'inventory.json', {'files': [path.relative_to(ROOT).as_posix() for path in files], 'mode': mode, 'supported': [{'file': path.relative_to(ROOT).as_posix(), 'language': language} for path, language in supported], 'unsupported': unsupported})",
+        "capability": "dna = _dna(); inventory = json.loads((OUT / 'inventory.json').read_text()); dependency_provenance = _bootstrap(OUT, dna['dependencies']) if inventory['supported'] else {'status': 'NOT_REQUIRED', 'packages': []}; pack = _pack(OUT) if inventory['supported'] else None; languages = _negotiate_capabilities({item['language'] for item in inventory['supported']}, pack.get_parser) if pack else {}\n_write_json(OUT / 'capabilities.json', {'dependency_provenance': dependency_provenance, 'languages': languages, 'syntax_rules': dna['syntax']})",
+        "parsing": "dna = _dna(); rules = dna['syntax']; inventory = json.loads((OUT / 'inventory.json').read_text()); capabilities = json.loads((OUT / 'capabilities.json').read_text())['languages']; sys.path.insert(0, str(OUT / 'dependencies')); importlib.invalidate_caches(); parser = _pack(OUT).get_parser; records, parsers = {'files': [], 'symbols': [], 'imports': [], 'calls': [], 'skipped': [], 'language_counts': {}, 'discovered_node_types': {}}, {}\nfor item in inventory['supported']:\n    path, language = ROOT / item['file'], item['language']\n    capability = capabilities.get(language, {})\n    if capability.get('status') != 'available': records['skipped'].append({'file': item['file'], 'reason': capability.get('reason', 'grammar was not probed')}); continue\n    record, symbols, imports, calls, discovered, error = _parse_file(path, ROOT, language, rules, parser, parsers)\n    if error or record is None: records['skipped'].append({'file': item['file'], 'reason': error or 'parser returned no file record'}); continue\n    records['files'].append(record); records['symbols'].extend(symbols); records['imports'].extend(imports); records['calls'].extend(calls); records['language_counts'][language] = records['language_counts'].get(language, 0) + 1\n    seen = records['discovered_node_types'].setdefault(language, {})\n    for node_type, count in discovered.items(): seen[node_type] = seen.get(node_type, 0) + count\nfor name in ('files', 'symbols', 'imports', 'calls'): _write_json(OUT / 'maps' / f'{name}.json', {name: records[name]})\n_write_json(OUT / 'parse_summary.json', {key: records[key] for key in ('skipped', 'language_counts', 'discovered_node_types')})",
         "dependencies": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; imports = json.loads((OUT / 'maps' / 'imports.json').read_text())['imports']\n_write_json(OUT / 'dependencies.json', _dependency_graph(files, imports))",
         "tests": "dna = _dna(); files = [ROOT / item for item in json.loads((OUT / 'inventory.json').read_text())['files']]\n_write_json(OUT / 'tests.json', {'tests': _discover_tests(files, ROOT, dna)})",
         "changes": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; dependencies = json.loads((OUT / 'dependencies.json').read_text()); history = _load_history(OUT / 'history' / 'runs.json')\n_write_json(OUT / 'changes.json', _change_graph(files, history, dependencies))",
@@ -1445,6 +1506,25 @@ def _write_json(path: Path, value: Any) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+def _write_gitignore(root: Path) -> bool:
+    path = root / ".gitignore"
+    entries = (
+        "# Seed-owned installed dependencies and transient bootstrap state.",
+        "/isr/dependencies/",
+        "/isr/dependencies.next/",
+        "/isr/cache/",
+        "/isr/grammars/",
+    )
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    missing = [entry for entry in entries[1:] if entry not in existing.splitlines()]
+    if not missing:
+        return False
+    separator = "\n" if existing and not existing.endswith("\n") else ""
+    addition = separator + "\n" + entries[0] + "\n" + "\n".join(missing) + "\n"
+    path.write_text(existing + addition, encoding="utf-8")
+    return True
 
 
 
@@ -1549,6 +1629,7 @@ def _germinate(root: Path, output_dir: Path, dna: dict[str, Any]) -> None:
         (output_dir / obsolete).unlink(missing_ok=True)
     _write_wrappers(root, output_dir)
     _write_instructions(root)
+    _write_gitignore(root)
 
 
 def _activation_notice(root: Path, output_dir: Path) -> str:

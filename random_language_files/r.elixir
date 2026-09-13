@@ -1,0 +1,9 @@
+defmodule Beta do
+  defstruct [:value]
+
+  def run(%__MODULE__{value: v}) do
+    v
+  end
+
+  def helper, do: run(%__MODULE__{value: 100})
+end

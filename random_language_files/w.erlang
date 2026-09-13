@@ -1,0 +1,14 @@
+-module(delta)
+
+-export([run/0, helper/0])
+
+-behaviour delta.
+
+init(_Args) ->
+  {ok, #{}}.
+
+run() ->
+  123.
+
+helper() ->
+  run().

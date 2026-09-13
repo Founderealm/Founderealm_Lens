@@ -1,0 +1,241 @@
+{
+  "dependency_provenance": {
+    "method": "exact versions and PyPI release SHA-256 over TLS",
+    "packages": [
+      {
+        "filename": "tree_sitter_language_pack-1.19.0-cp310-abi3-macosx_11_0_arm64.whl",
+        "name": "tree-sitter-language-pack",
+        "sha256": "a15a6aae2d19b3e0b249bf6cdf24e5ae4c1b0b91f4a0d4e08b1428680b1a40c4",
+        "verified_against": "https://pypi.org/pypi/tree-sitter-language-pack/1.19.0/json",
+        "version": "1.19.0"
+      },
+      {
+        "filename": "tree_sitter-0.26.0-cp312-cp312-macosx_11_0_arm64.whl",
+        "name": "tree-sitter",
+        "sha256": "918d89529786873f0982a0f59c2a303cd065fbfd1b903d71a8e4e1584f67b42e",
+        "verified_against": "https://pypi.org/pypi/tree-sitter/0.26.0/json",
+        "version": "0.26.0"
+      },
+      {
+        "filename": "duckdb-1.5.5-cp312-cp312-macosx_11_0_arm64.whl",
+        "name": "duckdb",
+        "sha256": "f0b88535a5d86fdd63dba6ea02ab68c003dfb9e4892b11256ef24c4da208baae",
+        "verified_against": "https://pypi.org/pypi/duckdb/1.5.5/json",
+        "version": "1.5.5"
+      }
+    ],
+    "status": "VERIFIED"
+  },
+  "languages": {
+    "c": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "clojure": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "cpp": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "csharp": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "css": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "elixir": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "erlang": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "fortran": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "go": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "haskell": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "java": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "javascript": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "julia": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "kotlin": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "lua": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "markdown": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "php": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "python": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "racket": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "ruby": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "rust": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "swift": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "tsx": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "typescript": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
+    "zig": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    }
+  },
+  "syntax_rules": {
+    "_binding_why": "Compiled languages declare with a keyword and the node type says so. Script languages bind a name to a value - const W = () => {}, handler = lambda x: x - and the wrapper node type says only lexical_declaration, which stripped to the kind 'lexical' and named nothing useful. An arrow function inside an object literal was missed entirely. Half of modern code declares this way.",
+    "_why": "Tree-sitter node types are named by convention across grammars, so one set of rules reads all 171 of them. Six hand-written language tables gave semantic depth to six languages and left the other 165 with symbols but ZERO imports and ZERO calls, measured. Kotlin was worse: its grammar carries no name fields at all, so the old name-field probe found nothing in a file whose node types are textbook conventional.",
+    "binding_name_fields": [
+      "name",
+      "left",
+      "key"
+    ],
+    "binding_types": [
+      "variable_declarator",
+      "assignment",
+      "assignment_statement",
+      "var_spec",
+      "pair",
+      "field_definition",
+      "public_field_definition"
+    ],
+    "binding_unwrap": [
+      "expression_list",
+      "parenthesized_expression"
+    ],
+    "binding_value_fields": [
+      "value",
+      "right"
+    ],
+    "binding_wrappers": [
+      "lexical_declaration",
+      "variable_declaration",
+      "var_declaration",
+      "expression_statement"
+    ],
+    "call_contains": [
+      "call",
+      "invocation"
+    ],
+    "call_exact": [
+      "new_expression",
+      "macro_invocation"
+    ],
+    "callee_fields": [
+      "function",
+      "macro",
+      "method",
+      "name"
+    ],
+    "import_callees": [
+      "require",
+      "require_relative",
+      "import_module",
+      "load"
+    ],
+    "import_contains": [
+      "import",
+      "use_declaration",
+      "using_",
+      "include",
+      "require",
+      "extern_crate"
+    ],
+    "name_child_types": [
+      "identifier",
+      "type_identifier",
+      "field_identifier",
+      "simple_identifier",
+      "property_identifier",
+      "constant",
+      "constructor_name"
+    ],
+    "name_fields": [
+      "name",
+      "declarator",
+      "function",
+      "alias",
+      "path"
+    ],
+    "skip_contains": [
+      "parameter"
+    ],
+    "skip_suffixes": [
+      "_list",
+      "_block",
+      "_body",
+      "_suffix"
+    ],
+    "symbol_exact": [
+      "class",
+      "method",
+      "module",
+      "singleton_method",
+      "rule_set"
+    ],
+    "symbol_suffixes": [
+      "_definition",
+      "_declaration",
+      "_item",
+      "_specifier",
+      "_specification",
+      "_set"
+    ],
+    "value_class_contains": [
+      "class"
+    ],
+    "value_function_contains": [
+      "arrow_function",
+      "function",
+      "lambda",
+      "func_literal",
+      "closure"
+    ]
+  }
+}

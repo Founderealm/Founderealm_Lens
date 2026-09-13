@@ -1,0 +1,187 @@
+{
+  "discovered_node_types": {
+    "c": {
+      "call_expression": 2,
+      "field_declaration": 1,
+      "function_definition": 2,
+      "preproc_include": 2,
+      "struct_specifier": 3
+    },
+    "clojure": {},
+    "cpp": {
+      "access_specifier": 1,
+      "call_expression": 2,
+      "class_specifier": 1,
+      "function_definition": 2,
+      "namespace_definition": 1,
+      "preproc_include": 2
+    },
+    "csharp": {
+      "class_declaration": 2,
+      "interface_declaration": 1,
+      "invocation_expression": 2,
+      "method_declaration": 3,
+      "namespace_declaration": 1,
+      "using_directive": 2
+    },
+    "css": {
+      "call_expression": 1,
+      "import_statement": 1,
+      "rule_set": 2
+    },
+    "elixir": {
+      "call": 6
+    },
+    "erlang": {
+      "call": 1
+    },
+    "fortran": {
+      "subroutine_call": 1
+    },
+    "go": {
+      "call_expression": 3,
+      "field_declaration": 1,
+      "function_declaration": 1,
+      "import_declaration": 2,
+      "method_declaration": 1,
+      "type_declaration": 1
+    },
+    "haskell": {
+      "module": 1
+    },
+    "java": {
+      "class_declaration": 1,
+      "field_declaration": 1,
+      "import_declaration": 2,
+      "interface_declaration": 1,
+      "method_declaration": 3,
+      "method_invocation": 1
+    },
+    "javascript": {
+      "call:require": 1,
+      "call_expression": 3,
+      "class_declaration": 1,
+      "function_declaration": 1,
+      "import_statement": 1,
+      "method_definition": 1,
+      "new_expression": 1
+    },
+    "julia": {
+      "call_expression": 3,
+      "function_definition": 2,
+      "struct_definition": 1,
+      "using_statement": 1
+    },
+    "kotlin": {
+      "call_expression": 4,
+      "class_declaration": 1,
+      "function_declaration": 2,
+      "import_header": 2
+    },
+    "lua": {
+      "bind:assignment_statement": 1,
+      "call:require": 1,
+      "function_call": 3,
+      "function_declaration": 2
+    },
+    "markdown": {},
+    "php": {
+      "class_declaration": 1,
+      "function_call_expression": 1,
+      "function_definition": 1,
+      "member_call_expression": 1,
+      "method_declaration": 1,
+      "namespace_use_declaration": 1,
+      "require_once_expression": 1
+    },
+    "python": {
+      "bind:assignment": 1,
+      "call": 617,
+      "call:importlib.import_module": 1,
+      "class_definition": 2,
+      "format_specifier": 3,
+      "function_definition": 56,
+      "future_import_statement": 1,
+      "import_from_statement": 7,
+      "import_statement": 21,
+      "with_item": 1
+    },
+    "racket": {},
+    "ruby": {
+      "call": 5,
+      "call:require": 1,
+      "call:require_relative": 1,
+      "class": 1,
+      "method": 2
+    },
+    "rust": {
+      "call_expression": 2,
+      "extern_crate_declaration": 1,
+      "field_declaration": 1,
+      "function_item": 2,
+      "function_signature_item": 1,
+      "impl_item": 1,
+      "let_declaration": 1,
+      "struct_item": 1,
+      "trait_item": 1,
+      "use_declaration": 1
+    },
+    "swift": {
+      "call_expression": 4,
+      "class_declaration": 1,
+      "function_declaration": 2,
+      "import_declaration": 1,
+      "inheritance_specifier": 1,
+      "property_declaration": 1,
+      "protocol_declaration": 1,
+      "protocol_function_declaration": 1
+    },
+    "tsx": {
+      "call_expression": 1,
+      "function_declaration": 1,
+      "import_statement": 1,
+      "interface_declaration": 1
+    },
+    "typescript": {
+      "bind:pair": 1,
+      "bind:variable_declarator": 3,
+      "call_expression": 2,
+      "class_declaration": 2,
+      "function_declaration": 2,
+      "import_statement": 1,
+      "interface_declaration": 1,
+      "method_definition": 4,
+      "new_expression": 1,
+      "type_alias_declaration": 1
+    },
+    "zig": {}
+  },
+  "language_counts": {
+    "c": 1,
+    "clojure": 1,
+    "cpp": 1,
+    "csharp": 1,
+    "css": 1,
+    "elixir": 1,
+    "erlang": 1,
+    "fortran": 1,
+    "go": 1,
+    "haskell": 1,
+    "java": 1,
+    "javascript": 1,
+    "julia": 1,
+    "kotlin": 1,
+    "lua": 1,
+    "markdown": 1,
+    "php": 1,
+    "python": 3,
+    "racket": 1,
+    "ruby": 1,
+    "rust": 1,
+    "swift": 1,
+    "tsx": 1,
+    "typescript": 2,
+    "zig": 1
+  },
+  "skipped": []
+}

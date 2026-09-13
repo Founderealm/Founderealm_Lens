@@ -4,7 +4,12 @@
 # A germination target, created from fixture/ by hand. Deliberately untracked: it
 # needs its own .git so the seed's primary git-inventory path is what gets exercised,
 # and a nested repository inside this one is more trouble than a copy step.
-corpus/
 
 __pycache__/
 *.pyc
+
+# Seed-owned installed dependencies and transient bootstrap state.
+/isr/dependencies/
+/isr/dependencies.next/
+/isr/cache/
+/isr/grammars/

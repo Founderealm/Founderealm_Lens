@@ -1,0 +1,154 @@
+{
+  "files": [
+    ".DS_Store",
+    ".gitignore",
+    "ISR_INSTRUCTIONS.md",
+    "capture",
+    "isr_seed.py",
+    "random_language_files/a.py",
+    "random_language_files/b.js",
+    "random_language_files/c.ts",
+    "random_language_files/d.tsx",
+    "random_language_files/e.css",
+    "random_language_files/f.rs",
+    "random_language_files/g.go",
+    "random_language_files/h.java",
+    "random_language_files/i.rb",
+    "random_language_files/j.c",
+    "random_language_files/k.cpp",
+    "random_language_files/l.cs",
+    "random_language_files/m.php",
+    "random_language_files/m.py",
+    "random_language_files/m.ts",
+    "random_language_files/n.kt",
+    "random_language_files/o.swift",
+    "random_language_files/p.lua",
+    "random_language_files/q.haskell",
+    "random_language_files/r.elixir",
+    "random_language_files/s.zig",
+    "random_language_files/t.clojure",
+    "random_language_files/u.julia",
+    "random_language_files/v.racket",
+    "random_language_files/w.erlang",
+    "random_language_files/x.fortran",
+    "search",
+    "test_bed",
+    "verify"
+  ],
+  "mode": "git",
+  "supported": [
+    {
+      "file": "ISR_INSTRUCTIONS.md",
+      "language": "markdown"
+    },
+    {
+      "file": "isr_seed.py",
+      "language": "python"
+    },
+    {
+      "file": "random_language_files/a.py",
+      "language": "python"
+    },
+    {
+      "file": "random_language_files/b.js",
+      "language": "javascript"
+    },
+    {
+      "file": "random_language_files/c.ts",
+      "language": "typescript"
+    },
+    {
+      "file": "random_language_files/d.tsx",
+      "language": "tsx"
+    },
+    {
+      "file": "random_language_files/e.css",
+      "language": "css"
+    },
+    {
+      "file": "random_language_files/f.rs",
+      "language": "rust"
+    },
+    {
+      "file": "random_language_files/g.go",
+      "language": "go"
+    },
+    {
+      "file": "random_language_files/h.java",
+      "language": "java"
+    },
+    {
+      "file": "random_language_files/i.rb",
+      "language": "ruby"
+    },
+    {
+      "file": "random_language_files/j.c",
+      "language": "c"
+    },
+    {
+      "file": "random_language_files/k.cpp",
+      "language": "cpp"
+    },
+    {
+      "file": "random_language_files/l.cs",
+      "language": "csharp"
+    },
+    {
+      "file": "random_language_files/m.php",
+      "language": "php"
+    },
+    {
+      "file": "random_language_files/m.py",
+      "language": "python"
+    },
+    {
+      "file": "random_language_files/m.ts",
+      "language": "typescript"
+    },
+    {
+      "file": "random_language_files/n.kt",
+      "language": "kotlin"
+    },
+    {
+      "file": "random_language_files/o.swift",
+      "language": "swift"
+    },
+    {
+      "file": "random_language_files/p.lua",
+      "language": "lua"
+    },
+    {
+      "file": "random_language_files/q.haskell",
+      "language": "haskell"
+    },
+    {
+      "file": "random_language_files/r.elixir",
+      "language": "elixir"
+    },
+    {
+      "file": "random_language_files/s.zig",
+      "language": "zig"
+    },
+    {
+      "file": "random_language_files/t.clojure",
+      "language": "clojure"
+    },
+    {
+      "file": "random_language_files/u.julia",
+      "language": "julia"
+    },
+    {
+      "file": "random_language_files/v.racket",
+      "language": "racket"
+    },
+    {
+      "file": "random_language_files/w.erlang",
+      "language": "erlang"
+    },
+    {
+      "file": "random_language_files/x.fortran",
+      "language": "fortran"
+    }
+  ],
+  "unsupported": {}
+}

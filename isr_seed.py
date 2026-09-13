@@ -79,13 +79,11 @@ DNA_JSON = r"""
     ],
     "dependencies": {
         "registry": "https://pypi.org/pypi/{name}/{version}/json",
+        "_why": "Pack 0.9.1 pinned three standalone grammar wheels whose ABIs contradicted its own tree-sitter pin, so C# could not load at all. Pack 1.x needs none of them and covers 371 languages instead of 171. It also identifies languages itself, which retires Pygments. Grammars arrive as ONE archive whose sha256 is published in a manifest inside this verified wheel, so the chain of custody still bottoms out at a hash this seed checked.",
+        "grammar_cache": "inside the output directory, never the user's home",
         "packages": [
-            {"name": "tree-sitter-language-pack", "version": "0.9.1"},
-            {"name": "tree-sitter", "version": "0.23.2"},
-            {"name": "tree-sitter-c-sharp", "version": "0.23.1"},
-            {"name": "tree-sitter-embedded-template", "version": "0.23.2"},
-            {"name": "tree-sitter-yaml", "version": "0.7.0"},
-            {"name": "Pygments", "version": "2.20.0"},
+            {"name": "tree-sitter-language-pack", "version": "1.19.0"},
+            {"name": "tree-sitter", "version": "0.26.0"},
             {"name": "duckdb", "version": "1.5.5"}
         ]
     },
@@ -154,32 +152,24 @@ def _find_repo_root(start: Path) -> Path:
     return current
 
 
-def _language_for_path(path: Path) -> str | None:
-    """Identify a language from a lexer registry when one is present, else the extension.
+def _language_for_path(path: Path, detect: Any = None) -> str | None:
+    """Identify a language, precisely when a detector is available and by extension otherwise.
 
-    The import and the lookup are separate try blocks on purpose. They were one, with
-    `except (ImportError, ClassNotFound)` around both, so a missing registry left
-    ClassNotFound unbound and the except clause itself raised UnboundLocalError. That
-    never fired while identification only happened after a parser runtime was installed.
-    The terrain survey runs BEFORE anything is installed, which is what exposed it.
-
-    Extension-only naming is the honest floor: it answers for every file and claims no
-    more than the filename supports.
+    The terrain survey runs before any parser runtime exists, so it has no detector and
+    names files by extension. Capture has the grammar pack, which identifies properly.
+    Both paths answer for every file and neither claims more than it can support, and the
+    survey states which one it used.
     """
-    fallback = "dockerfile" if path.name.lower() == "dockerfile" else (
-        path.suffix.lower().lstrip(".") or None
-    )
-    try:
-        from pygments.lexers import ClassNotFound, get_lexer_for_filename
-    except ImportError:
-        return fallback
-    try:
-        aliases = get_lexer_for_filename(path.name).aliases
-    except ClassNotFound:
-        return fallback
-    if aliases and aliases[0] != "text":
-        return aliases[0]
-    return fallback
+    if detect is not None:
+        try:
+            found = detect(str(path))
+        except Exception:
+            found = None
+        if found:
+            return found
+    if path.name.lower() == "dockerfile":
+        return "dockerfile"
+    return path.suffix.lower().lstrip(".") or None
 
 
 def _fallback_walk_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> Iterator[Path]:
@@ -405,6 +395,21 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     return result
 
 
+def _pack(out_dir: Path) -> Any:
+    """Import the grammar pack with its cache pinned inside the output directory.
+
+    Left alone it caches compiled grammars under the user's home. The seed declares that
+    it writes only inside the repository, and a declaration the code does not keep is
+    worse than no declaration, so the cache is redirected before the first grammar is
+    ever requested.
+    """
+    import importlib
+
+    pack = importlib.import_module("tree_sitter_language_pack")
+    pack.configure(pack.PackConfig(cache_dir=str(out_dir / "grammars")))
+    return pack
+
+
 def _node_text(node: Any, source: bytes, limit: int = 240) -> str:
     text = source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
     return " ".join(text.split())[:limit]
@@ -492,7 +497,12 @@ def _extract_tree(
     # import_declaration > import_spec and Kotlin import_list > import_header, and
     # both levels match on the word. Counting both doubles every import. Calls are
     # left to nest, because f(g(x)) genuinely is two call sites.
-    stack = [(root_node, False)]
+    #
+    # Seeded with the root's CHILDREN, not the root. A file's root node is not a
+    # declaration in it, and Python names that root `module` - the same string Ruby
+    # uses for its module keyword - so every Python file was reporting a phantom
+    # symbol for itself. Measured: a 3-declaration file returned 4.
+    stack = [(child, False) for child in reversed(root_node.named_children)]
 
     while stack:
         node, inside_import = stack.pop()
@@ -950,7 +960,7 @@ def _run_capture(root: Path) -> int:
             path.relative_to(out).as_posix() for path in out.rglob("*.json")
         )
         if relative not in produced
-        and not relative.startswith(("runtime/", "cache/"))
+        and not relative.startswith(("runtime/", "cache/", "grammars/"))
         and relative not in seed_owned
     )
 
@@ -1319,6 +1329,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
     recipe_helpers = {
         "inventory": shared_primitives
         + (
+            _pack,
             _language_for_path,
             _fallback_walk_files,
             _candidate_files,
@@ -1332,6 +1343,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
         ),
         "capability": shared_primitives
         + (
+            _pack,
             _normalized_package_name,
             _installed_distributions,
             _runtime_matches_lock,
@@ -1340,7 +1352,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
             _bootstrap,
             _negotiate_capabilities,
         ),
-        "parsing": shared_primitives + (_node_text, _node_name, _record, _symbol_kind,
+        "parsing": shared_primitives + (_pack, _node_text, _node_name, _record, _symbol_kind,
                                        _is_import, _is_call, _extract_tree, _parse_file),
         "dependencies": shared_primitives + (_dependency_graph,),
         "tests": shared_primitives + (_language_for_path, _discover_tests),
@@ -1356,9 +1368,9 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
         ),
     }
     lens_recipes = {
-        "inventory": "dna = _dna(); _bootstrap(OUT, dna['dependencies']); sys.path.insert(0, str(OUT / 'runtime')); importlib.invalidate_caches(); files, mode = _candidate_files(ROOT, OUT, dna); supported, unsupported = _classify_files(files, dna)\n_write_json(OUT / 'inventory.json', {'files': [path.relative_to(ROOT).as_posix() for path in files], 'mode': mode, 'supported': [{'file': path.relative_to(ROOT).as_posix(), 'language': language} for path, language in supported], 'unsupported': unsupported})",
-        "capability": "dna = _dna(); inventory = json.loads((OUT / 'inventory.json').read_text()); runtime = _bootstrap(OUT, dna['dependencies']) if inventory['supported'] else {'status': 'NOT_REQUIRED', 'packages': []}; parser = importlib.import_module('tree_sitter_language_pack').get_parser if inventory['supported'] else None; languages = _negotiate_capabilities({item['language'] for item in inventory['supported']}, parser) if parser else {}\n_write_json(OUT / 'capabilities.json', {'dependency_provenance': runtime, 'languages': languages, 'syntax_rules': dna['syntax']})",
-        "parsing": "dna = _dna(); rules = dna['syntax']; inventory = json.loads((OUT / 'inventory.json').read_text()); capabilities = json.loads((OUT / 'capabilities.json').read_text())['languages']; sys.path.insert(0, str(OUT / 'runtime')); importlib.invalidate_caches(); parser = importlib.import_module('tree_sitter_language_pack').get_parser; records, parsers = {'files': [], 'symbols': [], 'imports': [], 'calls': [], 'skipped': [], 'language_counts': {}, 'discovered_node_types': {}}, {}\nfor item in inventory['supported']:\n    path, language = ROOT / item['file'], item['language']\n    capability = capabilities.get(language, {})\n    if capability.get('status') != 'available': records['skipped'].append({'file': item['file'], 'reason': capability.get('reason', 'grammar was not probed')}); continue\n    record, symbols, imports, calls, discovered, error = _parse_file(path, ROOT, language, rules, parser, parsers, dna['activation']['max_file_bytes'])\n    if error or record is None: records['skipped'].append({'file': item['file'], 'reason': error or 'parser returned no file record'}); continue\n    records['files'].append(record); records['symbols'].extend(symbols); records['imports'].extend(imports); records['calls'].extend(calls); records['language_counts'][language] = records['language_counts'].get(language, 0) + 1\n    seen = records['discovered_node_types'].setdefault(language, {})\n    for node_type, count in discovered.items(): seen[node_type] = seen.get(node_type, 0) + count\nfor name in ('files', 'symbols', 'imports', 'calls'): _write_json(OUT / 'maps' / f'{name}.json', {name: records[name]})\n_write_json(OUT / 'parse_summary.json', {key: records[key] for key in ('skipped', 'language_counts', 'discovered_node_types')})",
+        "inventory": "dna = _dna(); _bootstrap(OUT, dna['dependencies']); sys.path.insert(0, str(OUT / 'runtime')); importlib.invalidate_caches(); files, mode = _candidate_files(ROOT, OUT, dna); supported, unsupported = _classify_files(files, dna, _pack(OUT).detect_language_from_path)\n_write_json(OUT / 'inventory.json', {'files': [path.relative_to(ROOT).as_posix() for path in files], 'mode': mode, 'supported': [{'file': path.relative_to(ROOT).as_posix(), 'language': language} for path, language in supported], 'unsupported': unsupported})",
+        "capability": "dna = _dna(); inventory = json.loads((OUT / 'inventory.json').read_text()); runtime = _bootstrap(OUT, dna['dependencies']) if inventory['supported'] else {'status': 'NOT_REQUIRED', 'packages': []}; pack = _pack(OUT) if inventory['supported'] else None; languages = _negotiate_capabilities({item['language'] for item in inventory['supported']}, pack.get_parser) if pack else {}\n_write_json(OUT / 'capabilities.json', {'dependency_provenance': runtime, 'languages': languages, 'syntax_rules': dna['syntax']})",
+        "parsing": "dna = _dna(); rules = dna['syntax']; inventory = json.loads((OUT / 'inventory.json').read_text()); capabilities = json.loads((OUT / 'capabilities.json').read_text())['languages']; sys.path.insert(0, str(OUT / 'runtime')); importlib.invalidate_caches(); parser = _pack(OUT).get_parser; records, parsers = {'files': [], 'symbols': [], 'imports': [], 'calls': [], 'skipped': [], 'language_counts': {}, 'discovered_node_types': {}}, {}\nfor item in inventory['supported']:\n    path, language = ROOT / item['file'], item['language']\n    capability = capabilities.get(language, {})\n    if capability.get('status') != 'available': records['skipped'].append({'file': item['file'], 'reason': capability.get('reason', 'grammar was not probed')}); continue\n    record, symbols, imports, calls, discovered, error = _parse_file(path, ROOT, language, rules, parser, parsers, dna['activation']['max_file_bytes'])\n    if error or record is None: records['skipped'].append({'file': item['file'], 'reason': error or 'parser returned no file record'}); continue\n    records['files'].append(record); records['symbols'].extend(symbols); records['imports'].extend(imports); records['calls'].extend(calls); records['language_counts'][language] = records['language_counts'].get(language, 0) + 1\n    seen = records['discovered_node_types'].setdefault(language, {})\n    for node_type, count in discovered.items(): seen[node_type] = seen.get(node_type, 0) + count\nfor name in ('files', 'symbols', 'imports', 'calls'): _write_json(OUT / 'maps' / f'{name}.json', {name: records[name]})\n_write_json(OUT / 'parse_summary.json', {key: records[key] for key in ('skipped', 'language_counts', 'discovered_node_types')})",
         "dependencies": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; imports = json.loads((OUT / 'maps' / 'imports.json').read_text())['imports']\n_write_json(OUT / 'dependencies.json', _dependency_graph(files, imports))",
         "tests": "dna = _dna(); files = [ROOT / item for item in json.loads((OUT / 'inventory.json').read_text())['files']]\n_write_json(OUT / 'tests.json', {'tests': _discover_tests(files, ROOT, dna)})",
         "changes": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; dependencies = json.loads((OUT / 'dependencies.json').read_text()); history = _load_history(OUT / 'history' / 'runs.json')\n_write_json(OUT / 'changes.json', _change_graph(files, history, dependencies))",
@@ -1437,13 +1449,13 @@ def _write_json(path: Path, value: Any) -> None:
 
 
 
-def _classify_files(candidate_files: list[Path], dna: dict[str, Any]) -> tuple[list[tuple[Path, str]], dict[str, int]]:
+def _classify_files(candidate_files: list[Path], dna: dict[str, Any], detect: Any = None) -> tuple[list[tuple[Path, str]], dict[str, int]]:
     """Assign parser capabilities and count source extensions without parsing."""
     ignored = set(dna["terrain"]["non_source_extensions"])
     supported: list[tuple[Path, str]] = []
     unsupported: dict[str, int] = {}
     for path in candidate_files:
-        language = _language_for_path(path)
+        language = _language_for_path(path, detect)
         if language:
             supported.append((path, language))
         elif path.suffix and path.suffix.lower() not in ignored:
@@ -1470,17 +1482,10 @@ def _survey(root: Path, output_dir: Path, dna: dict[str, Any]) -> dict[str, Any]
         "languages": dict(sorted(languages.items(), key=lambda item: (-item[1], item[0]))),
         "unsupported_extensions": dict(sorted(unsupported.items())),
         "output_dir": str(output_dir),
-        "identified_by": "lexer_registry" if _has_lexer_registry() else "file_extension",
+        "identified_by": "file_extension",
     }
 
 
-def _has_lexer_registry() -> bool:
-    """Whether a lexer registry is available to name files more precisely than an extension."""
-    try:
-        import pygments.lexers  # noqa: F401
-    except ImportError:
-        return False
-    return True
 
 
 def _germination_report(terrain: dict[str, Any], output_dir: Path) -> str:
@@ -1503,8 +1508,7 @@ def _germination_report(terrain: dict[str, Any], output_dir: Path) -> str:
         f"  root        {terrain['root']}",
         f"  files       {terrain['files']} via {inventory}",
         f"  languages   {shown or 'none identified'}"
-        + ("" if terrain["identified_by"] == "lexer_registry"
-           else "   (by file extension; the first capture names them precisely)"),
+        + "   (by extension; capture identifies them with the grammar pack)",
     ]
     if unsupported:
         lines.append(

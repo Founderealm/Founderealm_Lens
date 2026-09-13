@@ -1,8 +1,29 @@
 {
   "added": [
-    "ISR_INSTRUCTIONS.md",
+    "random_language_files/shared.py",
+    "random_language_files/y.html"
+  ],
+  "baseline_run": "2026-09-13T16:05:11.373689+00:00",
+  "changed": [
     "isr_seed.py",
-    "random_language_files/a.py",
+    "random_language_files/a.py"
+  ],
+  "impact": [
+    {
+      "depth": 1,
+      "evidence": "derived_impact",
+      "file": "random_language_files/i.rb"
+    }
+  ],
+  "removed": [],
+  "summary": {
+    "added": 2,
+    "changed": 2,
+    "removed": 0,
+    "unchanged": 26
+  },
+  "unchanged": [
+    "ISR_INSTRUCTIONS.md",
     "random_language_files/b.js",
     "random_language_files/c.ts",
     "random_language_files/d.tsx",
@@ -28,16 +49,5 @@
     "random_language_files/v.racket",
     "random_language_files/w.erlang",
     "random_language_files/x.fortran"
-  ],
-  "baseline_run": null,
-  "changed": [],
-  "impact": [],
-  "removed": [],
-  "summary": {
-    "added": 28,
-    "changed": 0,
-    "removed": 0,
-    "unchanged": 0
-  },
-  "unchanged": []
+  ]
 }

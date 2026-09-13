@@ -1,6 +1,5 @@
 {
   "files": [
-    ".DS_Store",
     ".gitignore",
     "ISR_INSTRUCTIONS.md",
     "capture",
@@ -26,11 +25,13 @@
     "random_language_files/q.haskell",
     "random_language_files/r.elixir",
     "random_language_files/s.zig",
+    "random_language_files/shared.py",
     "random_language_files/t.clojure",
     "random_language_files/u.julia",
     "random_language_files/v.racket",
     "random_language_files/w.erlang",
     "random_language_files/x.fortran",
+    "random_language_files/y.html",
     "search",
     "test_bed",
     "verify"
@@ -130,6 +131,10 @@
       "language": "zig"
     },
     {
+      "file": "random_language_files/shared.py",
+      "language": "python"
+    },
+    {
       "file": "random_language_files/t.clojure",
       "language": "clojure"
     },
@@ -148,6 +153,10 @@
     {
       "file": "random_language_files/x.fortran",
       "language": "fortran"
+    },
+    {
+      "file": "random_language_files/y.html",
+      "language": "html"
     }
   ],
   "unsupported": {}

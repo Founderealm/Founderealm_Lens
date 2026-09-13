@@ -2,7 +2,9 @@
   "adjacency": {
     "ISR_INSTRUCTIONS.md": [],
     "isr_seed.py": [],
-    "random_language_files/a.py": [],
+    "random_language_files/a.py": [
+      "random_language_files/shared.py"
+    ],
     "random_language_files/b.js": [],
     "random_language_files/c.ts": [],
     "random_language_files/d.tsx": [],
@@ -25,13 +27,21 @@
     "random_language_files/q.haskell": [],
     "random_language_files/r.elixir": [],
     "random_language_files/s.zig": [],
+    "random_language_files/shared.py": [],
     "random_language_files/t.clojure": [],
     "random_language_files/u.julia": [],
     "random_language_files/v.racket": [],
     "random_language_files/w.erlang": [],
-    "random_language_files/x.fortran": []
+    "random_language_files/x.fortran": [],
+    "random_language_files/y.html": []
   },
   "edges": [
+    {
+      "evidence": "derived_graph",
+      "from": "random_language_files/a.py",
+      "resolution": "inferred",
+      "to": "random_language_files/shared.py"
+    },
     {
       "evidence": "derived_graph",
       "from": "random_language_files/i.rb",
@@ -72,6 +82,7 @@
     ],
     "random_language_files/a.py": [
       "from pathlib import Path",
+      "from shared import shared_value",
       "import os"
     ],
     "random_language_files/b.js": [
@@ -157,15 +168,17 @@
     "random_language_files/q.haskell",
     "random_language_files/r.elixir",
     "random_language_files/s.zig",
+    "random_language_files/shared.py",
     "random_language_files/t.clojure",
     "random_language_files/u.julia",
     "random_language_files/v.racket",
     "random_language_files/w.erlang",
-    "random_language_files/x.fortran"
+    "random_language_files/x.fortran",
+    "random_language_files/y.html"
   ],
   "summary": {
-    "edges": 1,
-    "nodes": 28,
+    "edges": 2,
+    "nodes": 30,
     "unresolved_imports": 55
   },
   "unresolved_imports": [

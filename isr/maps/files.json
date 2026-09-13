@@ -10,22 +10,22 @@
       "sha256": "58188659002d79d62b4d9655048a39b36b5980f020fe951d24ea1b553ccaf4fe"
     },
     {
-      "bytes": 86586,
+      "bytes": 89707,
       "capability": "derived_node_type",
       "evidence": "direct_hash_and_parse",
       "file": "isr_seed.py",
       "language": "python",
       "parse_status": "PARSED",
-      "sha256": "3bc0f6a7153410d3eaf03c8ff8d2c6d254698bfed4d9e3973d224cfd23271f71"
+      "sha256": "7757f5369da33f9a44285bb576d754f1ecb5255bb4e0ae9b5e838b5b88538238"
     },
     {
-      "bytes": 151,
+      "bytes": 202,
       "capability": "derived_node_type",
       "evidence": "direct_hash_and_parse",
       "file": "random_language_files/a.py",
       "language": "python",
       "parse_status": "PARSED",
-      "sha256": "5c9ac242fd13e37ab37b5b705c8c9d91f6674c8fd5a0d86965642411420faf0e"
+      "sha256": "04dc55e23af806cb48b69eaae63c041917cfdda8381336f55ad2f293a230a28a"
     },
     {
       "bytes": 156,
@@ -208,6 +208,15 @@
       "sha256": "75972169f689719c7371819e65a58a1435cc3016a07a46813526c39a0429706f"
     },
     {
+      "bytes": 39,
+      "capability": "derived_node_type",
+      "evidence": "direct_hash_and_parse",
+      "file": "random_language_files/shared.py",
+      "language": "python",
+      "parse_status": "PARSED",
+      "sha256": "d83c90334ae35b4c1e02f6132a2d87d5e0e0b63e728f4dd8690d89d621225fc0"
+    },
+    {
       "bytes": 94,
       "capability": "derived_node_type",
       "evidence": "direct_hash_and_parse",
@@ -251,6 +260,15 @@
       "language": "fortran",
       "parse_status": "ERRORS_PRESENT",
       "sha256": "13c4e2870fd5a2276d84f9e6780f719bd32fbf540dffba64583316ccd73ad49f"
+    },
+    {
+      "bytes": 125,
+      "capability": "derived_node_type",
+      "evidence": "direct_hash_and_parse",
+      "file": "random_language_files/y.html",
+      "language": "html",
+      "parse_status": "PARSED",
+      "sha256": "922807b11f54124d5738d88f85649ee209202c8f2fccaba36c298c9e1d113d4d"
     }
   ]
 }

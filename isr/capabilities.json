@@ -67,6 +67,10 @@
       "evidence": "tree_sitter_probe",
       "status": "available"
     },
+    "html": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
     "java": {
       "evidence": "tree_sitter_probe",
       "status": "available"

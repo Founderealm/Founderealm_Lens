@@ -179,7 +179,9 @@ def _language_for_path(path: Path, detect: Any = None) -> str | None:
     return path.suffix.lower().lstrip(".") or None
 
 
-def _fallback_walk_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> Iterator[Path]:
+def _fallback_walk_files(
+    root: Path, output_dir: Path, dna: dict[str, Any]
+) -> Iterator[Path]:
     excluded = set(dna["terrain"]["exclude_directories"])
     seed_path = Path(__file__).resolve()
     for current, directories, filenames in os.walk(root, followlinks=False):
@@ -198,7 +200,9 @@ def _fallback_walk_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> I
             yield path
 
 
-def _candidate_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> tuple[list[Path], str]:
+def _candidate_files(
+    root: Path, output_dir: Path, dna: dict[str, Any]
+) -> tuple[list[Path], str]:
     seed_path = Path(__file__).resolve()
     excluded = set(dna["terrain"]["exclude_directories"])
     if (root / ".git").exists():
@@ -252,27 +256,40 @@ def _installed_distributions(dependencies_dir: Path) -> dict[str, Any]:
     }
 
 
-def _dependencies_match_lock(dependencies_dir: Path, lock: list[dict[str, str]]) -> bool:
+def _dependencies_match_lock(
+    dependencies_dir: Path, lock: list[dict[str, str]]
+) -> bool:
     dependencies_dir = dependencies_dir.resolve()
     if not dependencies_dir.exists():
         return False
     installed = _installed_distributions(dependencies_dir)
     for item in lock:
         distribution = installed.get(_normalized_package_name(item["name"]))
-        if distribution is None or distribution.version != item["version"] or distribution.files is None:
+        if (
+            distribution is None
+            or distribution.version != item["version"]
+            or distribution.files is None
+        ):
             return False
         for package_path in distribution.files:
             recorded_hash = package_path.hash
             if recorded_hash is None:
                 continue
             installed_path = Path(distribution.locate_file(package_path)).resolve()
-            if dependencies_dir != installed_path and dependencies_dir not in installed_path.parents:
+            if (
+                dependencies_dir != installed_path
+                and dependencies_dir not in installed_path.parents
+            ):
                 return False
             try:
-                digest = hashlib.new(recorded_hash.mode, installed_path.read_bytes()).digest()
+                digest = hashlib.new(
+                    recorded_hash.mode, installed_path.read_bytes()
+                ).digest()
             except (OSError, ValueError):
                 return False
-            encoded_digest = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+            encoded_digest = (
+                base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+            )
             if encoded_digest != recorded_hash.value:
                 return False
     return True
@@ -281,9 +298,13 @@ def _dependencies_match_lock(dependencies_dir: Path, lock: list[dict[str, str]])
 def _pip_command() -> list[str]:
     """Return a usable pip command for minimal Python installations."""
     if importlib.util.find_spec("pip") is None:
-        completed = subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], check=False)
+        completed = subprocess.run(
+            [sys.executable, "-m", "ensurepip", "--upgrade"], check=False
+        )
         if completed.returncode != 0 or importlib.util.find_spec("pip") is None:
-            raise RuntimeError("Python pip is unavailable and ensurepip could not install it")
+            raise RuntimeError(
+                "Python pip is unavailable and ensurepip could not install it"
+            )
     return [sys.executable, "-m", "pip"]
 
 
@@ -309,10 +330,13 @@ def _download_verified_wheels(
         allowed_hashes = {
             entry["filename"]: entry["digests"]["sha256"]
             for entry in release.get("urls", [])
-            if entry.get("packagetype") == "bdist_wheel" and entry.get("digests", {}).get("sha256")
+            if entry.get("packagetype") == "bdist_wheel"
+            and entry.get("digests", {}).get("sha256")
         }
         if not allowed_hashes:
-            raise RuntimeError(f"no authenticated wheels published for {name}=={version}")
+            raise RuntimeError(
+                f"no authenticated wheels published for {name}=={version}"
+            )
 
         command = [
             *_pip_command(),
@@ -327,7 +351,9 @@ def _download_verified_wheels(
         completed = subprocess.run(command, check=False)
         downloaded = list(package_dir.glob("*.whl"))
         if completed.returncode != 0 or len(downloaded) != 1:
-            raise RuntimeError(f"could not download one compatible wheel for {name}=={version}")
+            raise RuntimeError(
+                f"could not download one compatible wheel for {name}=={version}"
+            )
         wheel = downloaded[0]
         digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
         if allowed_hashes.get(wheel.name) != digest:
@@ -354,7 +380,8 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     lock_path = output_dir / "dependency-lock.json"
     if (
         _dependencies_match_lock(dependencies_dir, lock)
-        and PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)]) is not None
+        and PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)])
+        is not None
     ):
         if lock_path.exists():
             return json.loads(lock_path.read_text(encoding="utf-8"))
@@ -381,7 +408,9 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     completed = subprocess.run(command, check=False)
     if completed.returncode != 0 or not _dependencies_match_lock(staging_dir, lock):
         shutil.rmtree(staging_dir, ignore_errors=True)
-        raise RuntimeError("verified parser dependencies installation failed; host source was not modified")
+        raise RuntimeError(
+            "verified parser dependencies installation failed; host source was not modified"
+        )
     shutil.rmtree(dependencies_dir, ignore_errors=True)
     staging_dir.replace(dependencies_dir)
     # The wheels are installed and the runtime has been verified file by file against
@@ -391,8 +420,13 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     # repository, held for no reader.
     shutil.rmtree(cache_dir, ignore_errors=True)
     importlib.invalidate_caches()
-    if PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)]) is None:
-        raise RuntimeError("parser bootstrap completed but local dependencies are unavailable")
+    if (
+        PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)])
+        is None
+    ):
+        raise RuntimeError(
+            "parser bootstrap completed but local dependencies are unavailable"
+        )
     result = {
         "status": "VERIFIED",
         "method": "exact versions and PyPI release SHA-256 over TLS",
@@ -501,7 +535,9 @@ def _extract_tree(
     relative_path: str,
     language: str,
     rules: dict[str, Any],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, int]]:
+) -> tuple[
+    list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, int]
+]:
     """Read symbols, imports and calls from any grammar, by node type name.
 
     One rule set for every grammar instead of a table per language. Measured before
@@ -539,48 +575,82 @@ def _extract_tree(
         ):
             if _is_import(node_type, rules):
                 if not inside_import:
-                    imports.append(_record(node, relative_path, language=language,
-                                           syntax=node_type,
-                                           statement=_node_text(node, source)))
+                    imports.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            syntax=node_type,
+                            statement=_node_text(node, source),
+                        )
+                    )
                     discovered[node_type] = discovered.get(node_type, 0) + 1
                 node_claimed = True
             elif _is_call(node_type, rules):
                 target = next(
-                    (found for field in rules["callee_fields"]
-                     if (found := node.child_by_field_name(field)) is not None),
+                    (
+                        found
+                        for field in rules["callee_fields"]
+                        if (found := node.child_by_field_name(field)) is not None
+                    ),
                     None,
                 )
-                target_text = _node_text(target, source, 160) if target else "<unresolved>"
+                target_text = (
+                    _node_text(target, source, 160) if target else "<unresolved>"
+                )
                 # A call is how several languages spell an import: Ruby require,
                 # Lua require, CommonJS require. The old code special-cased this for
                 # JavaScript only, by name.
                 if target_text.split(".")[-1] in rules["import_callees"]:
-                    imports.append(_record(node, relative_path, language=language,
-                                           syntax=f"call:{target_text}",
-                                           statement=_node_text(node, source)))
-                    discovered[f"call:{target_text}"] = discovered.get(f"call:{target_text}", 0) + 1
-                calls.append(_record(node, relative_path, language=language,
-                                     target=target_text))
+                    imports.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            syntax=f"call:{target_text}",
+                            statement=_node_text(node, source),
+                        )
+                    )
+                    discovered[f"call:{target_text}"] = (
+                        discovered.get(f"call:{target_text}", 0) + 1
+                    )
+                calls.append(
+                    _record(node, relative_path, language=language, target=target_text)
+                )
                 discovered[node_type] = discovered.get(node_type, 0) + 1
             elif node_type in rules["binding_types"]:
                 value = next(
-                    (found for field in rules["binding_value_fields"]
-                     if (found := node.child_by_field_name(field)) is not None),
+                    (
+                        found
+                        for field in rules["binding_value_fields"]
+                        if (found := node.child_by_field_name(field)) is not None
+                    ),
                     None,
                 )
                 bound = _bound_kind(value, rules) if value is not None else None
                 if bound is not None:
                     kind, value_node = bound
                     name = next(
-                        (_node_text(found, source, 160)
-                         for field in rules["binding_name_fields"]
-                         if (found := node.child_by_field_name(field)) is not None),
+                        (
+                            _node_text(found, source, 160)
+                            for field in rules["binding_name_fields"]
+                            if (found := node.child_by_field_name(field)) is not None
+                        ),
                         "<anonymous>",
                     )
-                    symbols.append(_record(node, relative_path, language=language,
-                                           kind=kind, name=name,
-                                           evidence="derived_binding"))
-                    discovered[f"bind:{node_type}"] = discovered.get(f"bind:{node_type}", 0) + 1
+                    symbols.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            kind=kind,
+                            name=name,
+                            evidence="derived_binding",
+                        )
+                    )
+                    discovered[f"bind:{node_type}"] = (
+                        discovered.get(f"bind:{node_type}", 0) + 1
+                    )
                     # The bound value is reported once, under the name it was given. Left
                     # unclaimed, `let T = class {}` emitted both the binding and the
                     # anonymous class inside it. Its body is still walked, so methods
@@ -589,33 +659,45 @@ def _extract_tree(
             elif node_type not in rules["binding_wrappers"] and node.id not in claimed:
                 kind = _symbol_kind(node_type, rules)
                 if kind is not None:
-                    symbols.append(_record(node, relative_path, language=language,
-                                           kind=kind,
-                                           name=_node_name(node, source, rules),
-                                           evidence="derived_node_type"))
+                    symbols.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            kind=kind,
+                            name=_node_name(node, source, rules),
+                            evidence="derived_node_type",
+                        )
+                    )
                     discovered[node_type] = discovered.get(node_type, 0) + 1
 
         stack.extend(
-            (child, inside_import or node_claimed) for child in reversed(node.named_children)
+            (child, inside_import or node_claimed)
+            for child in reversed(node.named_children)
         )
     return symbols, imports, calls, discovered
 
 
-def _discover_tests(files: list[Path], root: Path, dna: dict[str, Any]) -> list[dict[str, Any]]:
+def _discover_tests(
+    files: list[Path], root: Path, dna: dict[str, Any]
+) -> list[dict[str, Any]]:
     directories = set(dna["terrain"]["test_directories"])
     patterns = tuple(dna["terrain"]["test_file_patterns"])
     discovered = []
     for path in files:
         relative = path.relative_to(root).as_posix()
-        if any(part in directories for part in path.relative_to(root).parts[:-1]) or any(
-            fnmatch.fnmatch(path.name, pattern) for pattern in patterns
-        ):
+        if any(
+            part in directories for part in path.relative_to(root).parts[:-1]
+        ) or any(fnmatch.fnmatch(path.name, pattern) for pattern in patterns):
             discovered.append(
                 {
                     "file": relative,
                     "language": _language_for_path(path),
                     "discovery": "test_directory"
-                    if any(part in directories for part in path.relative_to(root).parts[:-1])
+                    if any(
+                        part in directories
+                        for part in path.relative_to(root).parts[:-1]
+                    )
                     else "test_filename",
                 }
             )
@@ -660,7 +742,9 @@ def _parse_file(
         return None, [], [], [], {}, f"{type(error).__name__}: {error}"
 
 
-def _negotiate_capabilities(languages: set[str], get_parser: Any) -> dict[str, dict[str, str]]:
+def _negotiate_capabilities(
+    languages: set[str], get_parser: Any
+) -> dict[str, dict[str, str]]:
     """Probe each grammar once and record whether it loaded, with the reason if not.
 
     There is no depth tier to report any more. Every grammar that loads is read by the
@@ -670,7 +754,10 @@ def _negotiate_capabilities(languages: set[str], get_parser: Any) -> dict[str, d
     for language in sorted(languages):
         try:
             get_parser(language)
-            capabilities[language] = {"status": "available", "evidence": "tree_sitter_probe"}
+            capabilities[language] = {
+                "status": "available",
+                "evidence": "tree_sitter_probe",
+            }
         except Exception as error:
             capabilities[language] = {
                 "status": "unavailable",
@@ -680,7 +767,9 @@ def _negotiate_capabilities(languages: set[str], get_parser: Any) -> dict[str, d
     return capabilities
 
 
-def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]) -> dict[str, Any]:
+def _dependency_graph(
+    files: list[dict[str, Any]], imports: list[dict[str, Any]]
+) -> dict[str, Any]:
     known_files = {item["file"] for item in files}
     lookup: dict[str, set[str]] = {}
     for relative in known_files:
@@ -700,7 +789,9 @@ def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]
         matches: set[str] = set()
         quoted = re.findall(r"['\"]([^'\"]+)['\"]", statement)
         words = re.findall(r"[A-Za-z_][\w.-]*(?:/[\w.-]+)*", statement)
-        tokens = {token.lower().replace("/", ".").lstrip(".") for token in quoted + words}
+        tokens = {
+            token.lower().replace("/", ".").lstrip(".") for token in quoted + words
+        }
         for token in tokens:
             matches.update(lookup.get(token, ()))
         matches.discard(source)
@@ -712,7 +803,9 @@ def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]
                 if resolutions.get(edge) != "resolved":
                     resolutions[edge] = resolution
         else:
-            unresolved.append({"file": source, "statement": statement, "evidence": "unknown"})
+            unresolved.append(
+                {"file": source, "statement": statement, "evidence": "unknown"}
+            )
 
     adjacency = {relative: [] for relative in sorted(known_files)}
     for source, target in sorted(edges):
@@ -729,7 +822,9 @@ def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]
             for source, target in sorted(edges)
         ],
         "adjacency": adjacency,
-        "imports_by_file": {key: sorted(value) for key, value in sorted(imports_by_file.items())},
+        "imports_by_file": {
+            key: sorted(value) for key, value in sorted(imports_by_file.items())
+        },
         "unresolved_imports": unresolved,
         "summary": {
             "nodes": len(known_files),
@@ -750,13 +845,17 @@ def _load_history(history_path: Path) -> list[dict[str, Any]]:
 
 
 def _change_graph(
-    current_files: list[dict[str, Any]], history: list[dict[str, Any]], dependencies: dict[str, Any] | None = None
+    current_files: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    dependencies: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     current = {item["file"]: item["sha256"] for item in current_files}
     previous = history[-1].get("files", {}) if history else {}
     added = sorted(set(current) - set(previous))
     removed = sorted(set(previous) - set(current))
-    changed = sorted(path for path in set(current) & set(previous) if current[path] != previous[path])
+    changed = sorted(
+        path for path in set(current) & set(previous) if current[path] != previous[path]
+    )
     unchanged = sorted(set(current) & set(previous) - set(changed))
     impact = _change_impact(set(added) | set(changed), dependencies or {})
     return {
@@ -775,7 +874,9 @@ def _change_graph(
     }
 
 
-def _change_impact(changed: set[str], dependencies: dict[str, Any]) -> list[dict[str, Any]]:
+def _change_impact(
+    changed: set[str], dependencies: dict[str, Any]
+) -> list[dict[str, Any]]:
     """Propagate changed files through reverse dependency edges."""
     reverse: dict[str, set[str]] = {}
     for edge in dependencies.get("edges", []):
@@ -796,15 +897,26 @@ def _change_impact(changed: set[str], dependencies: dict[str, Any]) -> list[dict
 
 def _repository_fingerprint(files: list[dict[str, Any]]) -> str:
     """Return a stable Merkle-like root for the ordered file/hash set."""
-    payload = "\n".join(f"{item['file']}\0{item['sha256']}" for item in sorted(files, key=lambda item: item["file"]))
+    payload = "\n".join(
+        f"{item['file']}\0{item['sha256']}"
+        for item in sorted(files, key=lambda item: item["file"])
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _execution_plan(steps: list[dict[str, Any]]) -> dict[str, Any]:
     """Derive a deterministic stage order and report cycles in the matrix."""
-    valid_steps = [step for step in steps if isinstance(step, dict) and isinstance(step.get("id"), str)]
+    valid_steps = [
+        step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("id"), str)
+    ]
     ids = {step["id"] for step in valid_steps}
-    producers = {output: step["id"] for step in valid_steps for output in step.get("produces", [])}
+    producers = {
+        output: step["id"]
+        for step in valid_steps
+        for output in step.get("produces", [])
+    }
     graph = {step_id: set() for step_id in ids}
     for step in valid_steps:
         for requirement in step.get("requires", []):
@@ -817,7 +929,9 @@ def _execution_plan(steps: list[dict[str, Any]]) -> dict[str, Any]:
     remaining = {step_id: set(dependencies) for step_id, dependencies in graph.items()}
     order: list[str] = []
     while remaining:
-        ready = sorted(step_id for step_id, dependencies in remaining.items() if not dependencies)
+        ready = sorted(
+            step_id for step_id, dependencies in remaining.items() if not dependencies
+        )
         if not ready:
             break
         order.extend(ready)
@@ -826,27 +940,40 @@ def _execution_plan(steps: list[dict[str, Any]]) -> dict[str, Any]:
         for dependencies in remaining.values():
             dependencies.difference_update(ready)
     cycles = sorted(remaining)
-    return {"status": "PASS" if not cycles else "FAIL", "order": order, "cycles": cycles}
+    return {
+        "status": "PASS" if not cycles else "FAIL",
+        "order": order,
+        "cycles": cycles,
+    }
 
 
-def _trust_report(root: Path, output_dir: Path, dependency_provenance: dict[str, Any]) -> dict[str, Any]:
+def _trust_report(
+    root: Path, output_dir: Path, dependency_provenance: dict[str, Any]
+) -> dict[str, Any]:
     """Describe the seed's authority, network use, and write boundary."""
     return {
         "source_read_scope": str(root),
         "write_scope": {
             "artifacts": str(output_dir),
-            "tool_wrappers": [str(root / name) for name in ("capture", "search", "verify")],
+            "tool_wrappers": [
+                str(root / name) for name in ("capture", "search", "verify")
+            ],
             "runtime": str(output_dir / "shutter.py"),
             "instructions": str(root / "ISR_INSTRUCTIONS.md"),
             "instructions_policy": "create_if_absent",
         },
         "host_source_mutated": False,
         "repository_root_files_created": [
-            "capture", "search", "verify", "ISR_INSTRUCTIONS.md if absent",
+            "capture",
+            "search",
+            "verify",
+            "ISR_INSTRUCTIONS.md if absent",
         ],
         "network_used_for_dependencies": dependency_provenance.get("status")
         not in {"NOT_REQUIRED", "EXACT_VERSIONS_PRESENT"},
-        "dependency_verification": dependency_provenance.get("method", dependency_provenance.get("status")),
+        "dependency_verification": dependency_provenance.get(
+            "method", dependency_provenance.get("status")
+        ),
         "telemetry": "none",
         "evidence": "declared_execution_boundary",
     }
@@ -903,7 +1030,7 @@ def _write_wrappers(root: Path, output_dir: Path) -> list[str]:
         path = root / name
         path.write_text(
             "#!/bin/sh\n"
-            '# Written by isr_seed during activation. The interpreter is pinned to the\n'
+            "# Written by isr_seed during activation. The interpreter is pinned to the\n"
             "# one that germinated this tree, because the parser runtime is compiled\n"
             "# for it. Override with ISR_PYTHON if you move the tree to another.\n"
             'ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'
@@ -938,23 +1065,31 @@ def _run_capture(root: Path) -> int:
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"))
             node = next(
-                item for item in tree.body
+                item
+                for item in tree.body
                 if isinstance(item, ast.Assign)
-                and any(isinstance(target, ast.Name) and target.id == "LENS"
-                        for target in item.targets)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "LENS"
+                    for target in item.targets
+                )
             )
             lenses.append((ast.literal_eval(node.value), path))
         except (OSError, SyntaxError, StopIteration, ValueError) as error:
-            print(f"[ISR] {path.name} carries no readable LENS contract, not run: {error}")
+            print(
+                f"[ISR] {path.name} carries no readable LENS contract, not run: {error}"
+            )
 
-    produced = {artifact: lens["id"] for lens, _ in lenses for artifact in lens["produces"]}
+    produced = {
+        artifact: lens["id"] for lens, _ in lenses for artifact in lens["produces"]
+    }
     external = {"repository", "prior_runs", "dna", "all_previous_steps"}
 
     blocked: dict[str, list] = {}
     for lens, _ in lenses:
         optional = set(lens.get("optional_requires", []))
         unmet = [
-            need for need in lens["requires"]
+            need
+            for need in lens["requires"]
             if need not in produced and need not in external and need not in optional
         ]
         if unmet:
@@ -968,16 +1103,20 @@ def _run_capture(root: Path) -> int:
             if lens["id"] in blocked:
                 continue
             upstream = [
-                produced[need] for need in lens["requires"]
+                produced[need]
+                for need in lens["requires"]
                 if need in produced and produced[need] in blocked
             ]
             if upstream:
-                blocked[lens["id"]] = [f"upstream {name} is blocked" for name in sorted(set(upstream))]
+                blocked[lens["id"]] = [
+                    f"upstream {name} is blocked" for name in sorted(set(upstream))
+                ]
                 spreading = True
 
     pending = {
         lens["id"]: {produced[need] for need in lens["requires"] if need in produced}
-        for lens, _ in lenses if lens["id"] not in blocked
+        for lens, _ in lenses
+        if lens["id"] not in blocked
     }
     for lens, _ in lenses:
         if lens["id"] in pending and "all_previous_steps" in lens["requires"]:
@@ -1002,11 +1141,14 @@ def _run_capture(root: Path) -> int:
     # own scaffolding is how the real orphans stop being read.
     seed_owned = {"dependency-lock.json", "verification.json"}
     orphans = sorted(
-        relative for relative in (
+        relative
+        for relative in (
             path.relative_to(out).as_posix() for path in out.rglob("*.json")
         )
         if relative not in produced
-        and not relative.startswith(("dependencies/", "dependencies.next/", "cache/", "grammars/"))
+        and not relative.startswith(
+            ("dependencies/", "dependencies.next/", "cache/", "grammars/")
+        )
         and relative not in seed_owned
     )
 
@@ -1014,10 +1156,15 @@ def _run_capture(root: Path) -> int:
     environment = os.environ | {"ISR_ROOT": str(root)}
     for identifier in order:
         result = subprocess.run(
-            [sys.executable, str(by_id[identifier])], cwd=root, env=environment, check=False
+            [sys.executable, str(by_id[identifier])],
+            cwd=root,
+            env=environment,
+            check=False,
         )
         if result.returncode:
-            print(f"[ISR] {identifier} exited {result.returncode}; stages after it did not run")
+            print(
+                f"[ISR] {identifier} exited {result.returncode}; stages after it did not run"
+            )
             return result.returncode
 
     print(f"[ISR] {len(order)} lens(es) ran: {', '.join(order)}")
@@ -1106,14 +1253,21 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
 
     if not argv or argv[0] in ("-h", "--help", "views"):
         print('./search "SELECT ..."   one SELECT across the tables below')
-        print("./search <term>         that term across files, symbols, imports and calls")
+        print(
+            "./search <term>         that term across files, symbols, imports and calls"
+        )
         print("./search views          this list\n")
         for name, spec in views.items():
             if any(entry.split(" ")[0] == name for entry in absent):
                 print(f"  {name:11} ABSENT - run ./capture")
                 continue
             rows = connection.execute(f'SELECT count(*) FROM "{name}"').fetchone()[0]
-            columns = [d[0] for d in connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description]
+            columns = [
+                d[0]
+                for d in connection.execute(
+                    f'SELECT * FROM "{name}" LIMIT 0'
+                ).description
+            ]
             print(f"  {name:11} {rows:>6} rows   {spec['grain']}")
             print(f"              columns: {', '.join(columns)}")
             print(f"              CAVEAT: {spec['caveat']}\n")
@@ -1131,7 +1285,10 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
     if statements:
         if len(statements) != 1 or statements[0].type.name != "SELECT":
             kind = " then ".join(statement.type.name for statement in statements)
-            print(f"[ISR] One SELECT only; the engine read this as {kind}.", file=sys.stderr)
+            print(
+                f"[ISR] One SELECT only; the engine read this as {kind}.",
+                file=sys.stderr,
+            )
             return 2
         sql = request
     else:
@@ -1166,7 +1323,9 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
     # attached the file caveat to a query whose only mention of it was
     # count(DISTINCT file), a column. A caveat on a table nobody read is noise, and
     # noise is how the real ones stop being read.
-    read_from = set(re.findall(r'(?:from|join)\s+"?([a-z_]+)"?', sql, flags=re.IGNORECASE))
+    read_from = set(
+        re.findall(r'(?:from|join)\s+"?([a-z_]+)"?', sql, flags=re.IGNORECASE)
+    )
     for name, spec in views.items():
         if name in read_from:
             print(f"CAVEAT {name}: {spec['caveat']}")
@@ -1188,7 +1347,9 @@ def _write_search_recipe(output_dir: Path, dna: dict[str, Any]) -> None:
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     out_name = output_dir.name
-    views = {name: spec for name, spec in dna["views"].items() if not name.startswith("_")}
+    views = {
+        name: spec for name, spec in dna["views"].items() if not name.startswith("_")
+    }
     helpers = inspect.getsource(_connect_tables) + "\n\n" + inspect.getsource(_query)
     (output_dir / "search.py").write_text(
         "#!/usr/bin/env python3\n"
@@ -1232,30 +1393,56 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
             failures.append({"check": name, "detail": detail})
 
     for required in ("shutter.py", "search.py", "verify.py"):
-        record(f"core:{required}", (out_dir / required).is_file(), "generated core file missing")
+        record(
+            f"core:{required}",
+            (out_dir / required).is_file(),
+            "generated core file missing",
+        )
 
     # the DNA itself, and the stage graph it declares
     steps = dna.get("execution_matrix", [])
-    record("dna:identity", bool(dna.get("identity", {}).get("genome_version")), "no genome version")
+    record(
+        "dna:identity",
+        bool(dna.get("identity", {}).get("genome_version")),
+        "no genome version",
+    )
     record("dna:stages_declared", bool(steps), "execution_matrix is empty")
-    record("dna:contract_vocabulary", set(dna.get("execution_contract", {})) >= {
-        "optional_requires", "external_inputs", "mutates", "invalidates",
-        "evidence", "failure_policy", "scope", "trust_tier",
-    }, "execution_contract is missing fields")
-    record("dna:views_declared", bool({k for k in dna.get("views", {}) if not k.startswith("_")}),
-           "no views declared, so nothing is queryable")
+    record(
+        "dna:contract_vocabulary",
+        set(dna.get("execution_contract", {}))
+        >= {
+            "optional_requires",
+            "external_inputs",
+            "mutates",
+            "invalidates",
+            "evidence",
+            "failure_policy",
+            "scope",
+            "trust_tier",
+        },
+        "execution_contract is missing fields",
+    )
+    record(
+        "dna:views_declared",
+        bool({k for k in dna.get("views", {}) if not k.startswith("_")}),
+        "no views declared, so nothing is queryable",
+    )
     for name, spec in dna.get("views", {}).items():
         if name.startswith("_"):
             continue
-        record(f"view:{name}:caveat", bool(spec.get("caveat")),
-               "a view without a caveat hands over rows with their conditions removed")
+        record(
+            f"view:{name}:caveat",
+            bool(spec.get("caveat")),
+            "a view without a caveat hands over rows with their conditions removed",
+        )
 
     lenses = []
     for path in sorted((out_dir / "lenses").glob("*.py")):
         try:
             py_compile.compile(str(path), doraise=True)
             node = next(
-                item for item in ast_module.parse(path.read_text(encoding="utf-8")).body
+                item
+                for item in ast_module.parse(path.read_text(encoding="utf-8")).body
                 if isinstance(item, ast_module.Assign)
                 and any(getattr(t, "id", None) == "LENS" for t in item.targets)
             )
@@ -1263,26 +1450,43 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
             valid = (
                 isinstance(lens, dict)
                 and isinstance(lens.get("id"), str)
-                and all(isinstance(lens.get(key), list) for key in ("requires", "produces", "feeds"))
+                and all(
+                    isinstance(lens.get(key), list)
+                    for key in ("requires", "produces", "feeds")
+                )
                 and isinstance(lens.get("evidence"), str)
                 and lens.get("trust_tier") in tiers
             )
-            record(f"lens:{path.name}:contract", valid,
-                   "LENS must declare id, requires, produces, feeds, evidence and trust_tier")
+            record(
+                f"lens:{path.name}:contract",
+                valid,
+                "LENS must declare id, requires, produces, feeds, evidence and trust_tier",
+            )
             if valid:
                 lenses.append((lens, path))
         except Exception as error:
-            record(f"lens:{path.name}:compiles", False, f"{type(error).__name__}: {error}")
+            record(
+                f"lens:{path.name}:compiles", False, f"{type(error).__name__}: {error}"
+            )
 
     identifiers = [lens["id"] for lens, _ in lenses]
     outputs = [output for lens, _ in lenses for output in lens["produces"]]
-    record("lens_ids_unique", len(identifiers) == len(set(identifiers)), "duplicate lens id")
-    record("artifact_producers_unique", len(outputs) == len(set(outputs)),
-           "two lenses declare the same output")
+    record(
+        "lens_ids_unique",
+        len(identifiers) == len(set(identifiers)),
+        "duplicate lens id",
+    )
+    record(
+        "artifact_producers_unique",
+        len(outputs) == len(set(outputs)),
+        "two lenses declare the same output",
+    )
 
     produced = {output: lens["id"] for lens, _ in lenses for output in lens["produces"]}
-    pending = {lens["id"]: {produced[need] for need in lens["requires"] if need in produced}
-               for lens, _ in lenses}
+    pending = {
+        lens["id"]: {produced[need] for need in lens["requires"] if need in produced}
+        for lens, _ in lenses
+    }
     for lens, _ in lenses:
         if "all_previous_steps" in lens["requires"]:
             pending[lens["id"]].update(set(pending) - {lens["id"]})
@@ -1299,33 +1503,46 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
     for lens, _ in lenses:
         optional = set(lens.get("optional_requires", []))
         for need in lens["requires"]:
-            record(f"lens:{lens['id']}:input:{need}",
-                   need in produced or need in external or need in optional,
-                   "no lens produces this and it is not declared external or optional")
+            record(
+                f"lens:{lens['id']}:input:{need}",
+                need in produced or need in external or need in optional,
+                "no lens produces this and it is not declared external or optional",
+            )
         for output in lens["produces"]:
             artifact = out_dir / output
-            record(f"lens:{lens['id']}:output:{output}", artifact.is_file(),
-                   "declared output missing; run ./capture")
+            record(
+                f"lens:{lens['id']}:output:{output}",
+                artifact.is_file(),
+                "declared output missing; run ./capture",
+            )
             if artifact.is_file() and artifact.suffix == ".json":
                 try:
                     json.loads(artifact.read_text(encoding="utf-8"))
                 except (OSError, ValueError) as error:
                     record(f"artifact:{output}:parses", False, str(error))
             elif artifact.is_file() and artifact.suffix == ".md":
-                record(f"artifact:{output}:not_empty",
-                       bool(artifact.read_text(encoding="utf-8").strip()), "empty document")
+                record(
+                    f"artifact:{output}:not_empty",
+                    bool(artifact.read_text(encoding="utf-8").strip()),
+                    "empty document",
+                )
 
     return {
         "status": "PASS" if not failures else "FAIL",
         "scope": "structural contracts and artifact integrity; not semantic claim correctness",
         "lens_count": len(lenses),
-        "lens_evidence": {lens["id"]: {"evidence": lens["evidence"], "trust_tier": lens["trust_tier"]}
-                          for lens, _ in lenses},
+        "lens_evidence": {
+            lens["id"]: {"evidence": lens["evidence"], "trust_tier": lens["trust_tier"]}
+            for lens, _ in lenses
+        },
         "checks": checks,
         "failures": failures,
-        "generated_files": {path.relative_to(out_dir).as_posix():
-                            hashlib.sha256(path.read_bytes()).hexdigest()
-                            for path in sorted(out_dir.rglob("*.py"))},
+        "generated_files": {
+            path.relative_to(out_dir).as_posix(): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in sorted(out_dir.rglob("*.py"))
+        },
     }
 
 
@@ -1413,8 +1630,19 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
             _bootstrap,
             _negotiate_capabilities,
         ),
-        "parsing": shared_primitives + (_pack, _node_text, _node_name, _record, _symbol_kind, _bound_kind,
-                                       _is_import, _is_call, _extract_tree, _parse_file),
+        "parsing": shared_primitives
+        + (
+            _pack,
+            _node_text,
+            _node_name,
+            _record,
+            _symbol_kind,
+            _bound_kind,
+            _is_import,
+            _is_call,
+            _extract_tree,
+            _parse_file,
+        ),
         "dependencies": shared_primitives + (_dependency_graph,),
         "tests": shared_primitives + (_language_for_path, _discover_tests),
         "changes": shared_primitives + (_load_history, _change_graph, _change_impact),
@@ -1436,10 +1664,12 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
         "tests": "dna = _dna(); files = [ROOT / item for item in json.loads((OUT / 'inventory.json').read_text())['files']]\n_write_json(OUT / 'tests.json', {'tests': _discover_tests(files, ROOT, dna)})",
         "changes": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; dependencies = json.loads((OUT / 'dependencies.json').read_text()); history = _load_history(OUT / 'history' / 'runs.json')\n_write_json(OUT / 'changes.json', _change_graph(files, history, dependencies))",
         "contracts": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']\n_write_json(OUT / 'contracts.json', _validate_data(files))",
-        "ledger": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; matrix = {'provenance': {'generator': 'ledger_lens'}, 'steps': _dna()['execution_matrix'], 'plan': _execution_plan(_dna()['execution_matrix'])}; _write_json(OUT / 'execution_matrix.json', matrix); summary = {'files_parsed': len(files), 'symbols': len(json.loads((OUT / 'maps' / 'symbols.json').read_text())['symbols']), 'imports': len(json.loads((OUT / 'maps' / 'imports.json').read_text())['imports']), 'calls': len(json.loads((OUT / 'maps' / 'calls.json').read_text())['calls']), 'skipped_files': len(json.loads((OUT / 'parse_summary.json').read_text())['skipped'])}; fingerprint = _repository_fingerprint(files); history = _load_history(OUT / 'history' / 'runs.json'); history.append({'run_id': datetime.now(timezone.utc).isoformat(), 'fingerprint': fingerprint, 'files': {item['file']: item['sha256'] for item in files}, 'summary': summary}); _write_json(OUT / 'history' / 'runs.json', history[-_dna()['activation']['history_runs']:])"
+        "ledger": "files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']; matrix = {'provenance': {'generator': 'ledger_lens'}, 'steps': _dna()['execution_matrix'], 'plan': _execution_plan(_dna()['execution_matrix'])}; _write_json(OUT / 'execution_matrix.json', matrix); summary = {'files_parsed': len(files), 'symbols': len(json.loads((OUT / 'maps' / 'symbols.json').read_text())['symbols']), 'imports': len(json.loads((OUT / 'maps' / 'imports.json').read_text())['imports']), 'calls': len(json.loads((OUT / 'maps' / 'calls.json').read_text())['calls']), 'skipped_files': len(json.loads((OUT / 'parse_summary.json').read_text())['skipped'])}; fingerprint = _repository_fingerprint(files); history = _load_history(OUT / 'history' / 'runs.json'); history.append({'run_id': datetime.now(timezone.utc).isoformat(), 'fingerprint': fingerprint, 'files': {item['file']: item['sha256'] for item in files}, 'summary': summary}); _write_json(OUT / 'history' / 'runs.json', history[-_dna()['activation']['history_runs']:])",
     }
     for step in dna["execution_matrix"]:
-        helper_source = "\n\n".join(inspect.getsource(helper) for helper in recipe_helpers[step["id"]])
+        helper_source = "\n\n".join(
+            inspect.getsource(helper) for helper in recipe_helpers[step["id"]]
+        )
         source = (
             '#!/usr/bin/env python3\n"""Expanded ISR lens recipe.\n\n'
             f"Question: {step['id']}\n"
@@ -1504,7 +1734,9 @@ def _write_instructions(root: Path) -> bool:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -1527,9 +1759,9 @@ def _write_gitignore(root: Path) -> bool:
     return True
 
 
-
-
-def _classify_files(candidate_files: list[Path], dna: dict[str, Any], detect: Any = None) -> tuple[list[tuple[Path, str]], dict[str, int]]:
+def _classify_files(
+    candidate_files: list[Path], dna: dict[str, Any], detect: Any = None
+) -> tuple[list[tuple[Path, str]], dict[str, int]]:
     """Assign parser capabilities and count source extensions without parsing."""
     ignored = set(dna["terrain"]["non_source_extensions"])
     supported: list[tuple[Path, str]] = []
@@ -1559,13 +1791,13 @@ def _survey(root: Path, output_dir: Path, dna: dict[str, Any]) -> dict[str, Any]
         "root": str(root),
         "files": len(files),
         "inventory_mode": mode,
-        "languages": dict(sorted(languages.items(), key=lambda item: (-item[1], item[0]))),
+        "languages": dict(
+            sorted(languages.items(), key=lambda item: (-item[1], item[0]))
+        ),
         "unsupported_extensions": dict(sorted(unsupported.items())),
         "output_dir": str(output_dir),
         "identified_by": "file_extension",
     }
-
-
 
 
 def _germination_report(terrain: dict[str, Any], output_dir: Path) -> str:
@@ -1593,7 +1825,9 @@ def _germination_report(terrain: dict[str, Any], output_dir: Path) -> str:
     if unsupported:
         lines.append(
             "  unclaimed   "
-            + ", ".join(f"{ext} {count}" for ext, count in list(unsupported.items())[:6])
+            + ", ".join(
+                f"{ext} {count}" for ext, count in list(unsupported.items())[:6]
+            )
         )
     lines += [
         "",
@@ -1663,7 +1897,9 @@ def activate(root: Path, output_name: str, *, authorized: bool = False) -> int:
     root = _find_repo_root(root)
     output_dir = (root / output_name).resolve()
     if output_dir == root or root not in output_dir.parents:
-        raise ValueError("output directory must be a dedicated directory inside the repository")
+        raise ValueError(
+            "output directory must be a dedicated directory inside the repository"
+        )
     if not authorized:
         raise PermissionError("activation requires explicit authorization")
     terrain = _survey(root, output_dir, dna)
@@ -1677,23 +1913,32 @@ def main(argv: list[str] | None = None) -> int:
         description="Dormant ISR seed. No files or dependencies are created without activate."
     )
     subparsers = parser.add_subparsers(dest="command")
-    activate_parser = subparsers.add_parser("activate", help="germinate ISR in a repository")
+    activate_parser = subparsers.add_parser(
+        "activate", help="germinate ISR in a repository"
+    )
     activate_parser.add_argument("--root", type=Path, default=Path.cwd())
     activate_parser.add_argument("--output", default=_dna()["activation"]["output_dir"])
     activate_parser.add_argument(
-        "--yes", action="store_true", help="authorize the declared activation writes without prompting"
+        "--yes",
+        action="store_true",
+        help="authorize the declared activation writes without prompting",
     )
     args = parser.parse_args(argv)
     if args.command != "activate":
         parser.print_help()
-        print("\n[ISR] Dormant. Run the activate command to create any files or install dependencies.")
+        print(
+            "\n[ISR] Dormant. Run the activate command to create any files or install dependencies."
+        )
         return 0
     try:
         root = _find_repo_root(args.root)
         output_dir = (root / args.output).resolve()
         if not args.yes:
             print(_activation_notice(root, output_dir))
-            if input("Authorize these writes? [y/N] ").strip().lower() not in {"y", "yes"}:
+            if input("Authorize these writes? [y/N] ").strip().lower() not in {
+                "y",
+                "yes",
+            }:
                 print("[ISR] Activation cancelled; no files were written.")
                 return 0
         return activate(root, args.output, authorized=True)

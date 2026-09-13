@@ -1754,7 +1754,10 @@ def _write_gitignore(root: Path) -> bool:
     if not missing:
         return False
     separator = "\n" if existing and not existing.endswith("\n") else ""
-    addition = separator + "\n# Seed-owned metadata, dependencies, and transient bootstrap state.\n"
+    addition = (
+        separator
+        + "\n# Seed-owned metadata, dependencies, and transient bootstrap state.\n"
+    )
     addition += "\n".join(missing) + "\n"
     path.write_text(existing + addition, encoding="utf-8")
     return True

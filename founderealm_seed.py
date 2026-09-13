@@ -959,7 +959,7 @@ def _trust_report(
                 str(root / name) for name in ("capture", "search", "verify")
             ],
             "runtime": str(output_dir / "shutter.py"),
-            "instructions": str(root / "ISR_INSTRUCTIONS.md"),
+            "instructions": str(root / "FOUNDEREALM_INSTRUCTIONS.md"),
             "instructions_policy": "create_if_absent",
         },
         "host_source_mutated": False,
@@ -967,7 +967,7 @@ def _trust_report(
             "capture",
             "search",
             "verify",
-            "ISR_INSTRUCTIONS.md if absent",
+            "FOUNDEREALM_INSTRUCTIONS.md if absent",
         ],
         "network_used_for_dependencies": dependency_provenance.get("status")
         not in {"NOT_REQUIRED", "EXACT_VERSIONS_PRESENT"},
@@ -1030,7 +1030,7 @@ def _write_wrappers(root: Path, output_dir: Path) -> list[str]:
         path = root / name
         path.write_text(
             "#!/bin/sh\n"
-            "# Written by isr_seed during activation. The interpreter is pinned to the\n"
+            "# Written by founderealm_seed during activation. The interpreter is pinned to the\n"
             "# one that germinated this tree, because the parser runtime is compiled\n"
             "# for it. Override with ISR_PYTHON if you move the tree to another.\n"
             'ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'
@@ -1181,7 +1181,7 @@ def _write_runtime(output_dir: Path) -> None:
     out_name = output_dir.name
     (output_dir / "shutter.py").write_text(
         "#!/usr/bin/env python3\n"
-        '"""Non-destructive ISR instrumentation shutter, grown by isr_seed.py."""\n'
+        '"""Non-destructive ISR instrumentation shutter, grown by founderealm_seed.py."""\n'
         "import os\nimport subprocess\nimport sys\nfrom pathlib import Path\n\n"
         f"ROOT = Path(__file__).resolve().parents[1]\nOUT_NAME = {out_name!r}\n\n"
         + inspect.getsource(_run_capture)
@@ -1688,7 +1688,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
 
 
 def _write_instructions(root: Path) -> bool:
-    """Write ISR_INSTRUCTIONS.md at the repository root, only if nothing is there.
+    """Write FOUNDEREALM_INSTRUCTIONS.md at the repository root, only if nothing is there.
 
     Named for the tool rather than for agents in general, because AGENTS.md is a
     convention other tooling already claims and two things writing one filename is
@@ -1698,7 +1698,7 @@ def _write_instructions(root: Path) -> bool:
     two copies of one document are free to disagree. `./search views` is the live
     self-description and cannot go stale, so it is the better second source.
     """
-    path = root / "ISR_INSTRUCTIONS.md"
+    path = root / "FOUNDEREALM_INSTRUCTIONS.md"
     if path.exists():
         return False
     path.write_text(
@@ -1880,7 +1880,7 @@ def _activation_notice(root: Path, output_dir: Path) -> str:
             f"Write scope: {output_dir}",
             "",
             "It will create shutter, search, verification, installer, lens, JSON, Markdown, cache, and local parser-runtime files.",
-            "It may create ISR_INSTRUCTIONS.md only when that file is absent.",
+            "It may create FOUNDEREALM_INSTRUCTIONS.md only when that file is absent.",
             "It will not modify observed source files or send telemetry.",
             "It reads the FILE LIST only, to name the terrain. It parses nothing and",
             "downloads nothing. The first ./capture installs a hash-verified parser",

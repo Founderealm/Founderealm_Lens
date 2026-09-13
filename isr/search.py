@@ -71,14 +71,21 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
 
     if not argv or argv[0] in ("-h", "--help", "views"):
         print('./search "SELECT ..."   one SELECT across the tables below')
-        print("./search <term>         that term across files, symbols, imports and calls")
+        print(
+            "./search <term>         that term across files, symbols, imports and calls"
+        )
         print("./search views          this list\n")
         for name, spec in views.items():
             if any(entry.split(" ")[0] == name for entry in absent):
                 print(f"  {name:11} ABSENT - run ./capture")
                 continue
             rows = connection.execute(f'SELECT count(*) FROM "{name}"').fetchone()[0]
-            columns = [d[0] for d in connection.execute(f'SELECT * FROM "{name}" LIMIT 0').description]
+            columns = [
+                d[0]
+                for d in connection.execute(
+                    f'SELECT * FROM "{name}" LIMIT 0'
+                ).description
+            ]
             print(f"  {name:11} {rows:>6} rows   {spec['grain']}")
             print(f"              columns: {', '.join(columns)}")
             print(f"              CAVEAT: {spec['caveat']}\n")
@@ -96,7 +103,10 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
     if statements:
         if len(statements) != 1 or statements[0].type.name != "SELECT":
             kind = " then ".join(statement.type.name for statement in statements)
-            print(f"[ISR] One SELECT only; the engine read this as {kind}.", file=sys.stderr)
+            print(
+                f"[ISR] One SELECT only; the engine read this as {kind}.",
+                file=sys.stderr,
+            )
             return 2
         sql = request
     else:
@@ -131,7 +141,9 @@ def _query(connection: Any, views: dict, absent: list, argv: list) -> int:
     # attached the file caveat to a query whose only mention of it was
     # count(DISTINCT file), a column. A caveat on a table nobody read is noise, and
     # noise is how the real ones stop being read.
-    read_from = set(re.findall(r'(?:from|join)\s+"?([a-z_]+)"?', sql, flags=re.IGNORECASE))
+    read_from = set(
+        re.findall(r'(?:from|join)\s+"?([a-z_]+)"?', sql, flags=re.IGNORECASE)
+    )
     for name, spec in views.items():
         if name in read_from:
             print(f"CAVEAT {name}: {spec['caveat']}")

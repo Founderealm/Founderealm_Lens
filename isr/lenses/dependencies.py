@@ -30,11 +30,15 @@ def _dna() -> dict[str, Any]:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
-def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]) -> dict[str, Any]:
+def _dependency_graph(
+    files: list[dict[str, Any]], imports: list[dict[str, Any]]
+) -> dict[str, Any]:
     known_files = {item["file"] for item in files}
     lookup: dict[str, set[str]] = {}
     for relative in known_files:
@@ -54,7 +58,9 @@ def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]
         matches: set[str] = set()
         quoted = re.findall(r"['\"]([^'\"]+)['\"]", statement)
         words = re.findall(r"[A-Za-z_][\w.-]*(?:/[\w.-]+)*", statement)
-        tokens = {token.lower().replace("/", ".").lstrip(".") for token in quoted + words}
+        tokens = {
+            token.lower().replace("/", ".").lstrip(".") for token in quoted + words
+        }
         for token in tokens:
             matches.update(lookup.get(token, ()))
         matches.discard(source)
@@ -66,7 +72,9 @@ def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]
                 if resolutions.get(edge) != "resolved":
                     resolutions[edge] = resolution
         else:
-            unresolved.append({"file": source, "statement": statement, "evidence": "unknown"})
+            unresolved.append(
+                {"file": source, "statement": statement, "evidence": "unknown"}
+            )
 
     adjacency = {relative: [] for relative in sorted(known_files)}
     for source, target in sorted(edges):
@@ -83,7 +91,9 @@ def _dependency_graph(files: list[dict[str, Any]], imports: list[dict[str, Any]]
             for source, target in sorted(edges)
         ],
         "adjacency": adjacency,
-        "imports_by_file": {key: sorted(value) for key, value in sorted(imports_by_file.items())},
+        "imports_by_file": {
+            key: sorted(value) for key, value in sorted(imports_by_file.items())
+        },
         "unresolved_imports": unresolved,
         "summary": {
             "nodes": len(known_files),

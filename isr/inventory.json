@@ -1,9 +1,13 @@
 {
   "files": [
+    ".github/FUNDING.yml",
     ".gitignore",
-    "ISR_INSTRUCTIONS.md",
+    "FOUNDEREALM_INSTRUCTIONS.md",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
     "capture",
-    "isr_seed.py",
+    "founderealm_seed.py",
     "random_language_files/a.py",
     "random_language_files/b.js",
     "random_language_files/c.ts",
@@ -39,11 +43,19 @@
   "mode": "git",
   "supported": [
     {
-      "file": "ISR_INSTRUCTIONS.md",
+      "file": ".github/FUNDING.yml",
+      "language": "yaml"
+    },
+    {
+      "file": "FOUNDEREALM_INSTRUCTIONS.md",
       "language": "markdown"
     },
     {
-      "file": "isr_seed.py",
+      "file": "README.md",
+      "language": "markdown"
+    },
+    {
+      "file": "founderealm_seed.py",
       "language": "python"
     },
     {

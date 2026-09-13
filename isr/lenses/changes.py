@@ -30,7 +30,9 @@ def _dna() -> dict[str, Any]:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -45,13 +47,17 @@ def _load_history(history_path: Path) -> list[dict[str, Any]]:
 
 
 def _change_graph(
-    current_files: list[dict[str, Any]], history: list[dict[str, Any]], dependencies: dict[str, Any] | None = None
+    current_files: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    dependencies: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     current = {item["file"]: item["sha256"] for item in current_files}
     previous = history[-1].get("files", {}) if history else {}
     added = sorted(set(current) - set(previous))
     removed = sorted(set(previous) - set(current))
-    changed = sorted(path for path in set(current) & set(previous) if current[path] != previous[path])
+    changed = sorted(
+        path for path in set(current) & set(previous) if current[path] != previous[path]
+    )
     unchanged = sorted(set(current) & set(previous) - set(changed))
     impact = _change_impact(set(added) | set(changed), dependencies or {})
     return {
@@ -70,7 +76,9 @@ def _change_graph(
     }
 
 
-def _change_impact(changed: set[str], dependencies: dict[str, Any]) -> list[dict[str, Any]]:
+def _change_impact(
+    changed: set[str], dependencies: dict[str, Any]
+) -> list[dict[str, Any]]:
     """Propagate changed files through reverse dependency edges."""
     reverse: dict[str, set[str]] = {}
     for edge in dependencies.get("edges", []):

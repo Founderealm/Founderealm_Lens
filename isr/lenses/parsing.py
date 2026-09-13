@@ -30,7 +30,9 @@ def _dna() -> dict[str, Any]:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -133,7 +135,9 @@ def _extract_tree(
     relative_path: str,
     language: str,
     rules: dict[str, Any],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, int]]:
+) -> tuple[
+    list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, int]
+]:
     """Read symbols, imports and calls from any grammar, by node type name.
 
     One rule set for every grammar instead of a table per language. Measured before
@@ -171,48 +175,82 @@ def _extract_tree(
         ):
             if _is_import(node_type, rules):
                 if not inside_import:
-                    imports.append(_record(node, relative_path, language=language,
-                                           syntax=node_type,
-                                           statement=_node_text(node, source)))
+                    imports.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            syntax=node_type,
+                            statement=_node_text(node, source),
+                        )
+                    )
                     discovered[node_type] = discovered.get(node_type, 0) + 1
                 node_claimed = True
             elif _is_call(node_type, rules):
                 target = next(
-                    (found for field in rules["callee_fields"]
-                     if (found := node.child_by_field_name(field)) is not None),
+                    (
+                        found
+                        for field in rules["callee_fields"]
+                        if (found := node.child_by_field_name(field)) is not None
+                    ),
                     None,
                 )
-                target_text = _node_text(target, source, 160) if target else "<unresolved>"
+                target_text = (
+                    _node_text(target, source, 160) if target else "<unresolved>"
+                )
                 # A call is how several languages spell an import: Ruby require,
                 # Lua require, CommonJS require. The old code special-cased this for
                 # JavaScript only, by name.
                 if target_text.split(".")[-1] in rules["import_callees"]:
-                    imports.append(_record(node, relative_path, language=language,
-                                           syntax=f"call:{target_text}",
-                                           statement=_node_text(node, source)))
-                    discovered[f"call:{target_text}"] = discovered.get(f"call:{target_text}", 0) + 1
-                calls.append(_record(node, relative_path, language=language,
-                                     target=target_text))
+                    imports.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            syntax=f"call:{target_text}",
+                            statement=_node_text(node, source),
+                        )
+                    )
+                    discovered[f"call:{target_text}"] = (
+                        discovered.get(f"call:{target_text}", 0) + 1
+                    )
+                calls.append(
+                    _record(node, relative_path, language=language, target=target_text)
+                )
                 discovered[node_type] = discovered.get(node_type, 0) + 1
             elif node_type in rules["binding_types"]:
                 value = next(
-                    (found for field in rules["binding_value_fields"]
-                     if (found := node.child_by_field_name(field)) is not None),
+                    (
+                        found
+                        for field in rules["binding_value_fields"]
+                        if (found := node.child_by_field_name(field)) is not None
+                    ),
                     None,
                 )
                 bound = _bound_kind(value, rules) if value is not None else None
                 if bound is not None:
                     kind, value_node = bound
                     name = next(
-                        (_node_text(found, source, 160)
-                         for field in rules["binding_name_fields"]
-                         if (found := node.child_by_field_name(field)) is not None),
+                        (
+                            _node_text(found, source, 160)
+                            for field in rules["binding_name_fields"]
+                            if (found := node.child_by_field_name(field)) is not None
+                        ),
                         "<anonymous>",
                     )
-                    symbols.append(_record(node, relative_path, language=language,
-                                           kind=kind, name=name,
-                                           evidence="derived_binding"))
-                    discovered[f"bind:{node_type}"] = discovered.get(f"bind:{node_type}", 0) + 1
+                    symbols.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            kind=kind,
+                            name=name,
+                            evidence="derived_binding",
+                        )
+                    )
+                    discovered[f"bind:{node_type}"] = (
+                        discovered.get(f"bind:{node_type}", 0) + 1
+                    )
                     # The bound value is reported once, under the name it was given. Left
                     # unclaimed, `let T = class {}` emitted both the binding and the
                     # anonymous class inside it. Its body is still walked, so methods
@@ -221,14 +259,21 @@ def _extract_tree(
             elif node_type not in rules["binding_wrappers"] and node.id not in claimed:
                 kind = _symbol_kind(node_type, rules)
                 if kind is not None:
-                    symbols.append(_record(node, relative_path, language=language,
-                                           kind=kind,
-                                           name=_node_name(node, source, rules),
-                                           evidence="derived_node_type"))
+                    symbols.append(
+                        _record(
+                            node,
+                            relative_path,
+                            language=language,
+                            kind=kind,
+                            name=_node_name(node, source, rules),
+                            evidence="derived_node_type",
+                        )
+                    )
                     discovered[node_type] = discovered.get(node_type, 0) + 1
 
         stack.extend(
-            (child, inside_import or node_claimed) for child in reversed(node.named_children)
+            (child, inside_import or node_claimed)
+            for child in reversed(node.named_children)
         )
     return symbols, imports, calls, discovered
 

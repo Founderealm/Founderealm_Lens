@@ -36,30 +36,56 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
             failures.append({"check": name, "detail": detail})
 
     for required in ("shutter.py", "search.py", "verify.py"):
-        record(f"core:{required}", (out_dir / required).is_file(), "generated core file missing")
+        record(
+            f"core:{required}",
+            (out_dir / required).is_file(),
+            "generated core file missing",
+        )
 
     # the DNA itself, and the stage graph it declares
     steps = dna.get("execution_matrix", [])
-    record("dna:identity", bool(dna.get("identity", {}).get("genome_version")), "no genome version")
+    record(
+        "dna:identity",
+        bool(dna.get("identity", {}).get("genome_version")),
+        "no genome version",
+    )
     record("dna:stages_declared", bool(steps), "execution_matrix is empty")
-    record("dna:contract_vocabulary", set(dna.get("execution_contract", {})) >= {
-        "optional_requires", "external_inputs", "mutates", "invalidates",
-        "evidence", "failure_policy", "scope", "trust_tier",
-    }, "execution_contract is missing fields")
-    record("dna:views_declared", bool({k for k in dna.get("views", {}) if not k.startswith("_")}),
-           "no views declared, so nothing is queryable")
+    record(
+        "dna:contract_vocabulary",
+        set(dna.get("execution_contract", {}))
+        >= {
+            "optional_requires",
+            "external_inputs",
+            "mutates",
+            "invalidates",
+            "evidence",
+            "failure_policy",
+            "scope",
+            "trust_tier",
+        },
+        "execution_contract is missing fields",
+    )
+    record(
+        "dna:views_declared",
+        bool({k for k in dna.get("views", {}) if not k.startswith("_")}),
+        "no views declared, so nothing is queryable",
+    )
     for name, spec in dna.get("views", {}).items():
         if name.startswith("_"):
             continue
-        record(f"view:{name}:caveat", bool(spec.get("caveat")),
-               "a view without a caveat hands over rows with their conditions removed")
+        record(
+            f"view:{name}:caveat",
+            bool(spec.get("caveat")),
+            "a view without a caveat hands over rows with their conditions removed",
+        )
 
     lenses = []
     for path in sorted((out_dir / "lenses").glob("*.py")):
         try:
             py_compile.compile(str(path), doraise=True)
             node = next(
-                item for item in ast_module.parse(path.read_text(encoding="utf-8")).body
+                item
+                for item in ast_module.parse(path.read_text(encoding="utf-8")).body
                 if isinstance(item, ast_module.Assign)
                 and any(getattr(t, "id", None) == "LENS" for t in item.targets)
             )
@@ -67,26 +93,43 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
             valid = (
                 isinstance(lens, dict)
                 and isinstance(lens.get("id"), str)
-                and all(isinstance(lens.get(key), list) for key in ("requires", "produces", "feeds"))
+                and all(
+                    isinstance(lens.get(key), list)
+                    for key in ("requires", "produces", "feeds")
+                )
                 and isinstance(lens.get("evidence"), str)
                 and lens.get("trust_tier") in tiers
             )
-            record(f"lens:{path.name}:contract", valid,
-                   "LENS must declare id, requires, produces, feeds, evidence and trust_tier")
+            record(
+                f"lens:{path.name}:contract",
+                valid,
+                "LENS must declare id, requires, produces, feeds, evidence and trust_tier",
+            )
             if valid:
                 lenses.append((lens, path))
         except Exception as error:
-            record(f"lens:{path.name}:compiles", False, f"{type(error).__name__}: {error}")
+            record(
+                f"lens:{path.name}:compiles", False, f"{type(error).__name__}: {error}"
+            )
 
     identifiers = [lens["id"] for lens, _ in lenses]
     outputs = [output for lens, _ in lenses for output in lens["produces"]]
-    record("lens_ids_unique", len(identifiers) == len(set(identifiers)), "duplicate lens id")
-    record("artifact_producers_unique", len(outputs) == len(set(outputs)),
-           "two lenses declare the same output")
+    record(
+        "lens_ids_unique",
+        len(identifiers) == len(set(identifiers)),
+        "duplicate lens id",
+    )
+    record(
+        "artifact_producers_unique",
+        len(outputs) == len(set(outputs)),
+        "two lenses declare the same output",
+    )
 
     produced = {output: lens["id"] for lens, _ in lenses for output in lens["produces"]}
-    pending = {lens["id"]: {produced[need] for need in lens["requires"] if need in produced}
-               for lens, _ in lenses}
+    pending = {
+        lens["id"]: {produced[need] for need in lens["requires"] if need in produced}
+        for lens, _ in lenses
+    }
     for lens, _ in lenses:
         if "all_previous_steps" in lens["requires"]:
             pending[lens["id"]].update(set(pending) - {lens["id"]})
@@ -103,33 +146,46 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
     for lens, _ in lenses:
         optional = set(lens.get("optional_requires", []))
         for need in lens["requires"]:
-            record(f"lens:{lens['id']}:input:{need}",
-                   need in produced or need in external or need in optional,
-                   "no lens produces this and it is not declared external or optional")
+            record(
+                f"lens:{lens['id']}:input:{need}",
+                need in produced or need in external or need in optional,
+                "no lens produces this and it is not declared external or optional",
+            )
         for output in lens["produces"]:
             artifact = out_dir / output
-            record(f"lens:{lens['id']}:output:{output}", artifact.is_file(),
-                   "declared output missing; run ./capture")
+            record(
+                f"lens:{lens['id']}:output:{output}",
+                artifact.is_file(),
+                "declared output missing; run ./capture",
+            )
             if artifact.is_file() and artifact.suffix == ".json":
                 try:
                     json.loads(artifact.read_text(encoding="utf-8"))
                 except (OSError, ValueError) as error:
                     record(f"artifact:{output}:parses", False, str(error))
             elif artifact.is_file() and artifact.suffix == ".md":
-                record(f"artifact:{output}:not_empty",
-                       bool(artifact.read_text(encoding="utf-8").strip()), "empty document")
+                record(
+                    f"artifact:{output}:not_empty",
+                    bool(artifact.read_text(encoding="utf-8").strip()),
+                    "empty document",
+                )
 
     return {
         "status": "PASS" if not failures else "FAIL",
         "scope": "structural contracts and artifact integrity; not semantic claim correctness",
         "lens_count": len(lenses),
-        "lens_evidence": {lens["id"]: {"evidence": lens["evidence"], "trust_tier": lens["trust_tier"]}
-                          for lens, _ in lenses},
+        "lens_evidence": {
+            lens["id"]: {"evidence": lens["evidence"], "trust_tier": lens["trust_tier"]}
+            for lens, _ in lenses
+        },
         "checks": checks,
         "failures": failures,
-        "generated_files": {path.relative_to(out_dir).as_posix():
-                            hashlib.sha256(path.read_bytes()).hexdigest()
-                            for path in sorted(out_dir.rglob("*.py"))},
+        "generated_files": {
+            path.relative_to(out_dir).as_posix(): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in sorted(out_dir.rglob("*.py"))
+        },
     }
 
 

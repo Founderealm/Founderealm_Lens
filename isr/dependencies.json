@@ -1,7 +1,9 @@
 {
   "adjacency": {
-    "ISR_INSTRUCTIONS.md": [],
-    "isr_seed.py": [],
+    ".github/FUNDING.yml": [],
+    "FOUNDEREALM_INSTRUCTIONS.md": [],
+    "README.md": [],
+    "founderealm_seed.py": [],
     "random_language_files/a.py": [
       "random_language_files/shared.py"
     ],
@@ -50,7 +52,7 @@
     }
   ],
   "imports_by_file": {
-    "isr_seed.py": [
+    "founderealm_seed.py": [
       "from __future__ import annotations",
       "from collections.abc import Iterator",
       "from importlib.machinery import PathFinder",
@@ -145,8 +147,10 @@
     ]
   },
   "nodes": [
-    "ISR_INSTRUCTIONS.md",
-    "isr_seed.py",
+    ".github/FUNDING.yml",
+    "FOUNDEREALM_INSTRUCTIONS.md",
+    "README.md",
+    "founderealm_seed.py",
     "random_language_files/a.py",
     "random_language_files/b.js",
     "random_language_files/c.ts",
@@ -178,148 +182,148 @@
   ],
   "summary": {
     "edges": 2,
-    "nodes": 30,
+    "nodes": 32,
     "unresolved_imports": 55
   },
   "unresolved_imports": [
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from __future__ import annotations"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import argparse"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import base64"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import fnmatch"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import hashlib"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import importlib"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import importlib.util"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import inspect"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import json"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import os"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import re"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import shutil"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import subprocess"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import sys"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import textwrap"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from collections.abc import Iterator"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from importlib.machinery import PathFinder"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from importlib.metadata import distributions"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from pathlib import Path"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from typing import Any"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "from urllib.request import urlopen"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import importlib"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "importlib.import_module(\"tree_sitter_language_pack\")"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import ast"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import duckdb"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import duckdb"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import ast as ast_module"
     },
     {
       "evidence": "unknown",
-      "file": "isr_seed.py",
+      "file": "founderealm_seed.py",
       "statement": "import py_compile"
     },
     {

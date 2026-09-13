@@ -155,6 +155,7 @@
       "new_expression": 1,
       "type_alias_declaration": 1
     },
+    "yaml": {},
     "zig": {}
   },
   "language_counts": {
@@ -174,7 +175,7 @@
     "julia": 1,
     "kotlin": 1,
     "lua": 1,
-    "markdown": 1,
+    "markdown": 2,
     "php": 1,
     "python": 4,
     "racket": 1,
@@ -183,6 +184,7 @@
     "swift": 1,
     "tsx": 1,
     "typescript": 2,
+    "yaml": 1,
     "zig": 1
   },
   "skipped": []

@@ -127,6 +127,10 @@
       "evidence": "tree_sitter_probe",
       "status": "available"
     },
+    "yaml": {
+      "evidence": "tree_sitter_probe",
+      "status": "available"
+    },
     "zig": {
       "evidence": "tree_sitter_probe",
       "status": "available"

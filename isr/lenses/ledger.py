@@ -30,7 +30,9 @@ def _dna() -> dict[str, Any]:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -46,7 +48,10 @@ def _load_history(history_path: Path) -> list[dict[str, Any]]:
 
 def _repository_fingerprint(files: list[dict[str, Any]]) -> str:
     """Return a stable Merkle-like root for the ordered file/hash set."""
-    payload = "\n".join(f"{item['file']}\0{item['sha256']}" for item in sorted(files, key=lambda item: item["file"]))
+    payload = "\n".join(
+        f"{item['file']}\0{item['sha256']}"
+        for item in sorted(files, key=lambda item: item["file"])
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -56,24 +61,33 @@ def _stable_fingerprint(value: Any) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _trust_report(root: Path, output_dir: Path, dependency_provenance: dict[str, Any]) -> dict[str, Any]:
+def _trust_report(
+    root: Path, output_dir: Path, dependency_provenance: dict[str, Any]
+) -> dict[str, Any]:
     """Describe the seed's authority, network use, and write boundary."""
     return {
         "source_read_scope": str(root),
         "write_scope": {
             "artifacts": str(output_dir),
-            "tool_wrappers": [str(root / name) for name in ("capture", "search", "verify")],
+            "tool_wrappers": [
+                str(root / name) for name in ("capture", "search", "verify")
+            ],
             "runtime": str(output_dir / "shutter.py"),
-            "instructions": str(root / "ISR_INSTRUCTIONS.md"),
+            "instructions": str(root / "FOUNDEREALM_INSTRUCTIONS.md"),
             "instructions_policy": "create_if_absent",
         },
         "host_source_mutated": False,
         "repository_root_files_created": [
-            "capture", "search", "verify", "ISR_INSTRUCTIONS.md if absent",
+            "capture",
+            "search",
+            "verify",
+            "FOUNDEREALM_INSTRUCTIONS.md if absent",
         ],
         "network_used_for_dependencies": dependency_provenance.get("status")
         not in {"NOT_REQUIRED", "EXACT_VERSIONS_PRESENT"},
-        "dependency_verification": dependency_provenance.get("method", dependency_provenance.get("status")),
+        "dependency_verification": dependency_provenance.get(
+            "method", dependency_provenance.get("status")
+        ),
         "telemetry": "none",
         "evidence": "declared_execution_boundary",
     }
@@ -81,9 +95,17 @@ def _trust_report(root: Path, output_dir: Path, dependency_provenance: dict[str,
 
 def _execution_plan(steps: list[dict[str, Any]]) -> dict[str, Any]:
     """Derive a deterministic stage order and report cycles in the matrix."""
-    valid_steps = [step for step in steps if isinstance(step, dict) and isinstance(step.get("id"), str)]
+    valid_steps = [
+        step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("id"), str)
+    ]
     ids = {step["id"] for step in valid_steps}
-    producers = {output: step["id"] for step in valid_steps for output in step.get("produces", [])}
+    producers = {
+        output: step["id"]
+        for step in valid_steps
+        for output in step.get("produces", [])
+    }
     graph = {step_id: set() for step_id in ids}
     for step in valid_steps:
         for requirement in step.get("requires", []):
@@ -96,7 +118,9 @@ def _execution_plan(steps: list[dict[str, Any]]) -> dict[str, Any]:
     remaining = {step_id: set(dependencies) for step_id, dependencies in graph.items()}
     order: list[str] = []
     while remaining:
-        ready = sorted(step_id for step_id, dependencies in remaining.items() if not dependencies)
+        ready = sorted(
+            step_id for step_id, dependencies in remaining.items() if not dependencies
+        )
         if not ready:
             break
         order.extend(ready)
@@ -105,7 +129,11 @@ def _execution_plan(steps: list[dict[str, Any]]) -> dict[str, Any]:
         for dependencies in remaining.values():
             dependencies.difference_update(ready)
     cycles = sorted(remaining)
-    return {"status": "PASS" if not cycles else "FAIL", "order": order, "cycles": cycles}
+    return {
+        "status": "PASS" if not cycles else "FAIL",
+        "order": order,
+        "cycles": cycles,
+    }
 
 
 LENS = {'id': 'ledger', 'requires': ['all_previous_steps'], 'produces': ['execution_matrix.json', 'history/runs.json'], 'feeds': ['agent'], 'evidence': 'derived_run_record', 'trust_tier': 'seed_generated'}

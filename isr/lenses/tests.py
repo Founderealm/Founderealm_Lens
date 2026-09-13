@@ -30,7 +30,9 @@ def _dna() -> dict[str, Any]:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -54,21 +56,26 @@ def _language_for_path(path: Path, detect: Any = None) -> str | None:
     return path.suffix.lower().lstrip(".") or None
 
 
-def _discover_tests(files: list[Path], root: Path, dna: dict[str, Any]) -> list[dict[str, Any]]:
+def _discover_tests(
+    files: list[Path], root: Path, dna: dict[str, Any]
+) -> list[dict[str, Any]]:
     directories = set(dna["terrain"]["test_directories"])
     patterns = tuple(dna["terrain"]["test_file_patterns"])
     discovered = []
     for path in files:
         relative = path.relative_to(root).as_posix()
-        if any(part in directories for part in path.relative_to(root).parts[:-1]) or any(
-            fnmatch.fnmatch(path.name, pattern) for pattern in patterns
-        ):
+        if any(
+            part in directories for part in path.relative_to(root).parts[:-1]
+        ) or any(fnmatch.fnmatch(path.name, pattern) for pattern in patterns):
             discovered.append(
                 {
                     "file": relative,
                     "language": _language_for_path(path),
                     "discovery": "test_directory"
-                    if any(part in directories for part in path.relative_to(root).parts[:-1])
+                    if any(
+                        part in directories
+                        for part in path.relative_to(root).parts[:-1]
+                    )
                     else "test_filename",
                 }
             )

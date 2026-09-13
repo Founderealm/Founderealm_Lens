@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Non-destructive ISR instrumentation shutter, grown by isr_seed.py."""
+"""Non-destructive ISR instrumentation shutter, grown by founderealm_seed.py."""
 import os
 import subprocess
 import sys
@@ -30,23 +30,31 @@ def _run_capture(root: Path) -> int:
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"))
             node = next(
-                item for item in tree.body
+                item
+                for item in tree.body
                 if isinstance(item, ast.Assign)
-                and any(isinstance(target, ast.Name) and target.id == "LENS"
-                        for target in item.targets)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "LENS"
+                    for target in item.targets
+                )
             )
             lenses.append((ast.literal_eval(node.value), path))
         except (OSError, SyntaxError, StopIteration, ValueError) as error:
-            print(f"[ISR] {path.name} carries no readable LENS contract, not run: {error}")
+            print(
+                f"[ISR] {path.name} carries no readable LENS contract, not run: {error}"
+            )
 
-    produced = {artifact: lens["id"] for lens, _ in lenses for artifact in lens["produces"]}
+    produced = {
+        artifact: lens["id"] for lens, _ in lenses for artifact in lens["produces"]
+    }
     external = {"repository", "prior_runs", "dna", "all_previous_steps"}
 
     blocked: dict[str, list] = {}
     for lens, _ in lenses:
         optional = set(lens.get("optional_requires", []))
         unmet = [
-            need for need in lens["requires"]
+            need
+            for need in lens["requires"]
             if need not in produced and need not in external and need not in optional
         ]
         if unmet:
@@ -60,16 +68,20 @@ def _run_capture(root: Path) -> int:
             if lens["id"] in blocked:
                 continue
             upstream = [
-                produced[need] for need in lens["requires"]
+                produced[need]
+                for need in lens["requires"]
                 if need in produced and produced[need] in blocked
             ]
             if upstream:
-                blocked[lens["id"]] = [f"upstream {name} is blocked" for name in sorted(set(upstream))]
+                blocked[lens["id"]] = [
+                    f"upstream {name} is blocked" for name in sorted(set(upstream))
+                ]
                 spreading = True
 
     pending = {
         lens["id"]: {produced[need] for need in lens["requires"] if need in produced}
-        for lens, _ in lenses if lens["id"] not in blocked
+        for lens, _ in lenses
+        if lens["id"] not in blocked
     }
     for lens, _ in lenses:
         if lens["id"] in pending and "all_previous_steps" in lens["requires"]:
@@ -94,11 +106,14 @@ def _run_capture(root: Path) -> int:
     # own scaffolding is how the real orphans stop being read.
     seed_owned = {"dependency-lock.json", "verification.json"}
     orphans = sorted(
-        relative for relative in (
+        relative
+        for relative in (
             path.relative_to(out).as_posix() for path in out.rglob("*.json")
         )
         if relative not in produced
-        and not relative.startswith(("dependencies/", "dependencies.next/", "cache/", "grammars/"))
+        and not relative.startswith(
+            ("dependencies/", "dependencies.next/", "cache/", "grammars/")
+        )
         and relative not in seed_owned
     )
 
@@ -106,10 +121,15 @@ def _run_capture(root: Path) -> int:
     environment = os.environ | {"ISR_ROOT": str(root)}
     for identifier in order:
         result = subprocess.run(
-            [sys.executable, str(by_id[identifier])], cwd=root, env=environment, check=False
+            [sys.executable, str(by_id[identifier])],
+            cwd=root,
+            env=environment,
+            check=False,
         )
         if result.returncode:
-            print(f"[ISR] {identifier} exited {result.returncode}; stages after it did not run")
+            print(
+                f"[ISR] {identifier} exited {result.returncode}; stages after it did not run"
+            )
             return result.returncode
 
     print(f"[ISR] {len(order)} lens(es) ran: {', '.join(order)}")

@@ -30,7 +30,9 @@ def _dna() -> dict[str, Any]:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -69,7 +71,9 @@ def _language_for_path(path: Path, detect: Any = None) -> str | None:
     return path.suffix.lower().lstrip(".") or None
 
 
-def _fallback_walk_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> Iterator[Path]:
+def _fallback_walk_files(
+    root: Path, output_dir: Path, dna: dict[str, Any]
+) -> Iterator[Path]:
     excluded = set(dna["terrain"]["exclude_directories"])
     seed_path = Path(__file__).resolve()
     for current, directories, filenames in os.walk(root, followlinks=False):
@@ -88,7 +92,9 @@ def _fallback_walk_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> I
             yield path
 
 
-def _candidate_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> tuple[list[Path], str]:
+def _candidate_files(
+    root: Path, output_dir: Path, dna: dict[str, Any]
+) -> tuple[list[Path], str]:
     seed_path = Path(__file__).resolve()
     excluded = set(dna["terrain"]["exclude_directories"])
     if (root / ".git").exists():
@@ -130,7 +136,9 @@ def _candidate_files(root: Path, output_dir: Path, dna: dict[str, Any]) -> tuple
     return list(_fallback_walk_files(root, output_dir, dna)), "fallback_no_gitignore"
 
 
-def _classify_files(candidate_files: list[Path], dna: dict[str, Any], detect: Any = None) -> tuple[list[tuple[Path, str]], dict[str, int]]:
+def _classify_files(
+    candidate_files: list[Path], dna: dict[str, Any], detect: Any = None
+) -> tuple[list[tuple[Path, str]], dict[str, int]]:
     """Assign parser capabilities and count source extensions without parsing."""
     ignored = set(dna["terrain"]["non_source_extensions"])
     supported: list[tuple[Path, str]] = []
@@ -157,27 +165,40 @@ def _installed_distributions(dependencies_dir: Path) -> dict[str, Any]:
     }
 
 
-def _dependencies_match_lock(dependencies_dir: Path, lock: list[dict[str, str]]) -> bool:
+def _dependencies_match_lock(
+    dependencies_dir: Path, lock: list[dict[str, str]]
+) -> bool:
     dependencies_dir = dependencies_dir.resolve()
     if not dependencies_dir.exists():
         return False
     installed = _installed_distributions(dependencies_dir)
     for item in lock:
         distribution = installed.get(_normalized_package_name(item["name"]))
-        if distribution is None or distribution.version != item["version"] or distribution.files is None:
+        if (
+            distribution is None
+            or distribution.version != item["version"]
+            or distribution.files is None
+        ):
             return False
         for package_path in distribution.files:
             recorded_hash = package_path.hash
             if recorded_hash is None:
                 continue
             installed_path = Path(distribution.locate_file(package_path)).resolve()
-            if dependencies_dir != installed_path and dependencies_dir not in installed_path.parents:
+            if (
+                dependencies_dir != installed_path
+                and dependencies_dir not in installed_path.parents
+            ):
                 return False
             try:
-                digest = hashlib.new(recorded_hash.mode, installed_path.read_bytes()).digest()
+                digest = hashlib.new(
+                    recorded_hash.mode, installed_path.read_bytes()
+                ).digest()
             except (OSError, ValueError):
                 return False
-            encoded_digest = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+            encoded_digest = (
+                base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+            )
             if encoded_digest != recorded_hash.value:
                 return False
     return True
@@ -186,9 +207,13 @@ def _dependencies_match_lock(dependencies_dir: Path, lock: list[dict[str, str]])
 def _pip_command() -> list[str]:
     """Return a usable pip command for minimal Python installations."""
     if importlib.util.find_spec("pip") is None:
-        completed = subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], check=False)
+        completed = subprocess.run(
+            [sys.executable, "-m", "ensurepip", "--upgrade"], check=False
+        )
         if completed.returncode != 0 or importlib.util.find_spec("pip") is None:
-            raise RuntimeError("Python pip is unavailable and ensurepip could not install it")
+            raise RuntimeError(
+                "Python pip is unavailable and ensurepip could not install it"
+            )
     return [sys.executable, "-m", "pip"]
 
 
@@ -214,10 +239,13 @@ def _download_verified_wheels(
         allowed_hashes = {
             entry["filename"]: entry["digests"]["sha256"]
             for entry in release.get("urls", [])
-            if entry.get("packagetype") == "bdist_wheel" and entry.get("digests", {}).get("sha256")
+            if entry.get("packagetype") == "bdist_wheel"
+            and entry.get("digests", {}).get("sha256")
         }
         if not allowed_hashes:
-            raise RuntimeError(f"no authenticated wheels published for {name}=={version}")
+            raise RuntimeError(
+                f"no authenticated wheels published for {name}=={version}"
+            )
 
         command = [
             *_pip_command(),
@@ -232,7 +260,9 @@ def _download_verified_wheels(
         completed = subprocess.run(command, check=False)
         downloaded = list(package_dir.glob("*.whl"))
         if completed.returncode != 0 or len(downloaded) != 1:
-            raise RuntimeError(f"could not download one compatible wheel for {name}=={version}")
+            raise RuntimeError(
+                f"could not download one compatible wheel for {name}=={version}"
+            )
         wheel = downloaded[0]
         digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
         if allowed_hashes.get(wheel.name) != digest:
@@ -259,7 +289,8 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     lock_path = output_dir / "dependency-lock.json"
     if (
         _dependencies_match_lock(dependencies_dir, lock)
-        and PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)]) is not None
+        and PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)])
+        is not None
     ):
         if lock_path.exists():
             return json.loads(lock_path.read_text(encoding="utf-8"))
@@ -286,7 +317,9 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     completed = subprocess.run(command, check=False)
     if completed.returncode != 0 or not _dependencies_match_lock(staging_dir, lock):
         shutil.rmtree(staging_dir, ignore_errors=True)
-        raise RuntimeError("verified parser dependencies installation failed; host source was not modified")
+        raise RuntimeError(
+            "verified parser dependencies installation failed; host source was not modified"
+        )
     shutil.rmtree(dependencies_dir, ignore_errors=True)
     staging_dir.replace(dependencies_dir)
     # The wheels are installed and the runtime has been verified file by file against
@@ -296,8 +329,13 @@ def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, A
     # repository, held for no reader.
     shutil.rmtree(cache_dir, ignore_errors=True)
     importlib.invalidate_caches()
-    if PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)]) is None:
-        raise RuntimeError("parser bootstrap completed but local dependencies are unavailable")
+    if (
+        PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)])
+        is None
+    ):
+        raise RuntimeError(
+            "parser bootstrap completed but local dependencies are unavailable"
+        )
     result = {
         "status": "VERIFIED",
         "method": "exact versions and PyPI release SHA-256 over TLS",

@@ -1709,6 +1709,7 @@ def _write_instructions(root: Path) -> bool:
         "    ./capture    rebuild the map. Seconds. Run it when code changed.\n"
         "    ./search     ask it something. Start with `./search views`.\n"
         "    ./verify     check the instrument itself, not your code.\n\n"
+        "Python 3.10 or newer is required to run the seed and its generated tools.\n\n"
         "## Reading an answer\n\n"
         "Every table carries a CAVEAT and it prints with the rows. Read it. Call sites\n"
         "resolve by NAME, so they are candidates and not proven edges. A null means\n"

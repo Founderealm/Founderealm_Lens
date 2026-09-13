@@ -8,6 +8,8 @@ source fast.
     ./search     ask it something. Start with `./search views`.
     ./verify     check the instrument itself, not your code.
 
+Python 3.10 or newer is required to run the seed and its generated tools.
+
 ## Reading an answer
 
 Every table carries a CAVEAT and it prints with the rows. Read it. Call sites

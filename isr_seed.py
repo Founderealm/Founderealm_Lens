@@ -1743,18 +1743,19 @@ def _write_json(path: Path, value: Any) -> None:
 def _write_gitignore(root: Path) -> bool:
     path = root / ".gitignore"
     entries = (
-        "# Seed-owned installed dependencies and transient bootstrap state.",
+        "**/.DS_Store",
         "/isr/dependencies/",
         "/isr/dependencies.next/",
         "/isr/cache/",
         "/isr/grammars/",
     )
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    missing = [entry for entry in entries[1:] if entry not in existing.splitlines()]
+    missing = [entry for entry in entries if entry not in existing.splitlines()]
     if not missing:
         return False
     separator = "\n" if existing and not existing.endswith("\n") else ""
-    addition = separator + "\n" + entries[0] + "\n" + "\n".join(missing) + "\n"
+    addition = separator + "\n# Seed-owned metadata, dependencies, and transient bootstrap state.\n"
+    addition += "\n".join(missing) + "\n"
     path.write_text(existing + addition, encoding="utf-8")
     return True
 

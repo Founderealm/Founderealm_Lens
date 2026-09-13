@@ -1,6 +1,0 @@
-#!/bin/sh
-# Written by founderealm_seed during activation. The interpreter is pinned to the
-# one that germinated this tree, because the parser runtime is compiled
-# for it. Override with ISR_PYTHON if you move the tree to another.
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec "${ISR_PYTHON:-/Volumes/Working_Drive/Projects/isr_seed/.venv/bin/python}" "$ROOT/isr/search.py" "$@"

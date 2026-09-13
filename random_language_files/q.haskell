@@ -1,9 +1,0 @@
-module Alpha where
-
-data Delta = Delta { value :: Int } deriving (Show)
-
-run :: Delta -> Int
-run (Delta v) = v
-
-helper :: Int
-helper = run $ Delta 42

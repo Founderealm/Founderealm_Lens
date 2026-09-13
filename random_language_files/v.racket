@@ -1,5 +1,0 @@
-# Delta returns a value
-(define (delta x) (* 2 x))
-
-(define (helper)
-  (delta 10))

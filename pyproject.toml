@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "founderealm-lens"
+version = "1.0.0"
+description = "A map for AI coding agents: one Python file that surveys a repository it has never seen and leaves behind a SQL-queryable map of symbols, imports and call sites. Reads source, never executes it."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Founderealm" }]
+keywords = [
+    "ai", "ai-agents", "llm", "coding-assistant", "agent-tools",
+    "code-search", "code-navigation", "static-analysis",
+    "repository-analysis", "tree-sitter", "duckdb",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Utilities",
+]
+
+# The floor the seed also enforces at runtime, because this file is downloaded on its
+# own as often as it is installed, and nothing checks on that path.
+requires-python = ">=3.10"
+
+# Declared here so a pip or uv install resolves them for the host platform and the seed
+# finds them already importable. Downloading them is a fallback for the raw-file path,
+# not the normal one. Installing this package writes nothing to any repository: the seed
+# still asks before it creates a single file.
+dependencies = [
+    "tree-sitter==0.26.0",
+    "tree-sitter-language-pack==1.19.0",
+    "duckdb==1.5.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/Founderealm/Founderealm_Lens"
+Source = "https://github.com/Founderealm/Founderealm_Lens"
+Issues = "https://github.com/Founderealm/Founderealm_Lens/issues"
+
+[project.scripts]
+founderealm = "founderealm_seed:main"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["founderealm_seed.py", "founderealm_code.py", "lens_dna.json"]
+sources = ["."]
+
+[tool.hatch.build.targets.sdist]
+include = ["founderealm_seed.py", "founderealm_code.py", "lens_dna.json", "README.md", "LICENSE", "NOTICE"]

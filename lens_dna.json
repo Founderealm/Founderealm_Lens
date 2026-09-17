@@ -1,0 +1,420 @@
+{
+  "activation": {
+    "history_runs": 5,
+    "output_dir": "founderealm"
+  },
+  "dependencies": {
+    "packages": [
+      {
+        "name": "tree-sitter-language-pack",
+        "version": "1.19.0"
+      },
+      {
+        "name": "tree-sitter",
+        "version": "0.26.0"
+      },
+      {
+        "name": "duckdb",
+        "version": "1.5.5"
+      }
+    ],
+    "registry": "https://pypi.org/pypi/{name}/{version}/json"
+  },
+  "documents": {
+    "instructions": {
+      "filename": "FOUNDEREALM_INSTRUCTIONS.md",
+      "text": "# Founderealm Lens\n\nThis repository carries a map of itself. Read the map before reading source\nbroadly. Source is the final authority; the map is how you find the right\nsource fast.\n\n    ./capture    rebuild the map. Run it when the code changed.\n    ./search     ask it something. Start with `./search views`.\n    ./verify     check the instrument itself, not your code.\n\n## Reading an answer\n\nEvery table carries a CAVEAT and it prints with the rows. Read it. Call sites\nresolve by NAME, so they are candidates and not proven edges. A null means\nnever measured, not zero.\n\nABSENT, BLOCKED and ORPHANED are answers, not errors. They mean nobody\nsurveyed that ground. Report them as unknown. Do not fill them in.\n\nUse grep when the map says it does not know. That is what the map is for.\n\n## The lenses are examples\n\n`founderealm/lenses/` holds eight small scripts. They are a demonstration of what is\npossible, not a fixed set and not a framework.\n\nWrite your own. Copy `NEW_LENS.py.example`, declare its `LENS` contract, write\nthe JSON it promises. `./capture` finds it by reading that declaration. There\nis no registry to edit.\n\nDelete the ones you do not want. `./capture` notices: it names the artifacts\nnothing produces any more, and it blocks and names any lens whose input is\ngone rather than failing on it.\n\nNever hand-edit an artifact. Fix the lens, then capture again.\n"
+    }
+  },
+  "execution_contract": {
+    "evidence": "how the stage establishes its claims",
+    "external_inputs": "observed inputs not produced by another stage",
+    "failure_policy": "block_downstream, emit_unknown, or emit_partial",
+    "invalidates": "outputs made stale by a changed input",
+    "mutates": "paths changed by the stage",
+    "optional_requires": "soft inputs; absence must not block the stage",
+    "scope": "population the stage is allowed to inspect",
+    "trust_tier": "provenance tier for the executable lens recipe"
+  },
+  "execution_matrix": [
+    {
+      "evidence": "direct_filesystem_inventory",
+      "feeds": [
+        "parsing",
+        "changes",
+        "tests"
+      ],
+      "id": "inventory",
+      "produces": [
+        "inventory.json"
+      ],
+      "requires": [
+        "repository"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "tree_sitter_runtime_probe",
+      "feeds": [
+        "parsing"
+      ],
+      "id": "capability",
+      "produces": [
+        "capabilities.json"
+      ],
+      "requires": [
+        "inventory.json"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "tree_sitter_syntax",
+      "feeds": [
+        "dependencies",
+        "catalogue"
+      ],
+      "id": "parsing",
+      "produces": [
+        "maps/files.json",
+        "maps/symbols.json",
+        "maps/imports.json",
+        "maps/calls.json",
+        "parse_summary.json"
+      ],
+      "requires": [
+        "inventory.json",
+        "capabilities.json"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "derived_import_token_resolution",
+      "feeds": [
+        "catalogue"
+      ],
+      "id": "dependencies",
+      "produces": [
+        "dependencies.json"
+      ],
+      "requires": [
+        "maps/files.json",
+        "maps/imports.json"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "directory_and_filename_convention",
+      "feeds": [
+        "catalogue"
+      ],
+      "id": "tests",
+      "produces": [
+        "tests.json"
+      ],
+      "requires": [
+        "inventory.json"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "file_hash_and_derived_impact",
+      "feeds": [
+        "catalogue"
+      ],
+      "id": "changes",
+      "produces": [
+        "changes.json"
+      ],
+      "requires": [
+        "maps/files.json",
+        "dependencies.json",
+        "prior_runs"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "structural_contract_validation",
+      "feeds": [
+        "catalogue"
+      ],
+      "id": "contracts",
+      "produces": [
+        "contracts.json"
+      ],
+      "requires": [
+        "dna",
+        "maps/files.json",
+        "maps/symbols.json",
+        "maps/imports.json",
+        "maps/calls.json"
+      ],
+      "trust_tier": "seed_generated"
+    },
+    {
+      "evidence": "derived_run_record",
+      "feeds": [
+        "agent"
+      ],
+      "id": "ledger",
+      "produces": [
+        "execution_matrix.json",
+        "history/runs.json"
+      ],
+      "requires": [
+        "all_previous_steps"
+      ],
+      "trust_tier": "seed_generated"
+    }
+  ],
+  "identity": {
+    "genome_version": "1.0.0",
+    "name": "Founderealm Lens"
+  },
+  "syntax": {
+    "binding_name_fields": [
+      "name",
+      "left",
+      "key"
+    ],
+    "binding_types": [
+      "variable_declarator",
+      "assignment",
+      "assignment_statement",
+      "var_spec",
+      "pair",
+      "field_definition",
+      "public_field_definition"
+    ],
+    "binding_unwrap": [
+      "expression_list",
+      "parenthesized_expression"
+    ],
+    "binding_value_fields": [
+      "value",
+      "right"
+    ],
+    "binding_wrappers": [
+      "lexical_declaration",
+      "variable_declaration",
+      "var_declaration",
+      "expression_statement"
+    ],
+    "call_contains": [
+      "call",
+      "invocation"
+    ],
+    "call_exact": [
+      "new_expression",
+      "macro_invocation"
+    ],
+    "callee_fields": [
+      "function",
+      "macro",
+      "method",
+      "name"
+    ],
+    "import_callees": [
+      "require",
+      "require_relative",
+      "import_module",
+      "load"
+    ],
+    "import_contains": [
+      "import",
+      "use_declaration",
+      "using_",
+      "include",
+      "require",
+      "extern_crate"
+    ],
+    "import_member_types": [
+      "import_specifier",
+      "named_imports",
+      "import_clause",
+      "namespace_import",
+      "import_alias",
+      "import_default_specifier",
+      "import_namespace_specifier"
+    ],
+    "name_child_types": [
+      "identifier",
+      "type_identifier",
+      "field_identifier",
+      "simple_identifier",
+      "property_identifier",
+      "constant",
+      "constructor_name"
+    ],
+    "name_fields": [
+      "name",
+      "declarator",
+      "function",
+      "alias",
+      "path"
+    ],
+    "skip_contains": [
+      "parameter"
+    ],
+    "skip_suffixes": [
+      "_list",
+      "_block",
+      "_body",
+      "_suffix"
+    ],
+    "symbol_exact": [
+      "class",
+      "method",
+      "module",
+      "singleton_method",
+      "rule_set"
+    ],
+    "symbol_suffixes": [
+      "_definition",
+      "_declaration",
+      "_item",
+      "_specifier",
+      "_specification",
+      "_set"
+    ],
+    "value_class_contains": [
+      "class"
+    ],
+    "value_function_contains": [
+      "arrow_function",
+      "function",
+      "lambda",
+      "func_literal",
+      "closure"
+    ]
+  },
+  "terrain": {
+    "directory_index_names": [
+      "index",
+      "__init__",
+      "mod",
+      "lib",
+      "main",
+      "init",
+      "package"
+    ],
+    "exclude_directories": [
+      ".founderealm",
+      ".git",
+      ".gradle",
+      ".hg",
+      ".idea",
+      ".isr",
+      ".mypy_cache",
+      ".next",
+      ".pytest_cache",
+      ".ruff_cache",
+      ".svn",
+      ".tox",
+      ".venv",
+      "__pycache__",
+      "build",
+      "coverage",
+      "dist",
+      "founderealm",
+      "node_modules",
+      "out",
+      "target",
+      "vendor",
+      "venv"
+    ],
+    "non_source_extensions": [
+      ".bmp",
+      ".gif",
+      ".ico",
+      ".jpeg",
+      ".jpg",
+      ".lock",
+      ".pdf",
+      ".png",
+      ".pyc",
+      ".svg",
+      ".webp",
+      ".woff",
+      ".woff2",
+      ".zip"
+    ],
+    "test_directories": [
+      "test",
+      "tests",
+      "__tests__",
+      "spec",
+      "specs"
+    ],
+    "test_file_patterns": [
+      "test_*.*",
+      "*_test.*",
+      "*.test.*",
+      "*.spec.*"
+    ]
+  },
+  "views": {
+    "call": {
+      "artifact": "maps/calls.json",
+      "caveat": "RESOLVED BY NAME, not by receiver type. Any object's method of that name lands here, so each row is a CANDIDATE call site and not a proven edge. target=<unresolved> means the grammar put the callee somewhere none of the declared callee fields reached.",
+      "collection": "calls",
+      "columns": "\"file\" VARCHAR, \"line\" INTEGER, \"column\" INTEGER, \"end_line\" INTEGER, \"end_column\" INTEGER, \"start_byte\" BIGINT, \"end_byte\" BIGINT, \"evidence\" VARCHAR, \"language\" VARCHAR, \"target\" VARCHAR",
+      "grain": "one row per call site"
+    },
+    "dependency": {
+      "artifact": "dependencies.json",
+      "caveat": "resolution=resolved means a relative path written in the source was followed from the file that wrote it and landed on a file that exists, so the edge is known. inferred means no path could be followed and a name matched somewhere in the repository, which can be wrong where two files share a name in different packages.",
+      "collection": "edges",
+      "columns": "\"from\" VARCHAR, \"to\" VARCHAR, \"resolution\" VARCHAR, \"evidence\" VARCHAR",
+      "grain": "one row per file-to-file edge"
+    },
+    "file": {
+      "artifact": "maps/files.json",
+      "caveat": "capability=derived_node_type means symbols, imports and calls were read from node type names rather than a curated table. parse_status=ERRORS_PRESENT means the grammar recovered from a syntax error, so records from that file may be incomplete.",
+      "collection": "files",
+      "columns": "\"file\" VARCHAR, \"language\" VARCHAR, \"bytes\" BIGINT, \"sha256\" VARCHAR, \"parse_status\" VARCHAR, \"evidence\" VARCHAR, \"capability\" VARCHAR",
+      "grain": "one row per parsed file"
+    },
+    "impact": {
+      "artifact": "changes.json",
+      "caveat": "Derived by walking dependency edges backwards from changed files, so it inherits the inferred-edge caveat. depth is hops, not severity. Empty on a first run, when there is no prior run to compare against.",
+      "collection": "impact",
+      "columns": "\"file\" VARCHAR, \"depth\" INTEGER, \"evidence\" VARCHAR",
+      "grain": "one row per file reached by a change, with its distance"
+    },
+    "import": {
+      "artifact": "maps/imports.json",
+      "caveat": "syntax names the node type it came from, or call:<name> when a language spells an import as a function call, as Ruby and Lua do. A grouped import, as Go and Kotlin spell one, yields one row per package rather than one row for the group.",
+      "collection": "imports",
+      "columns": "\"file\" VARCHAR, \"line\" INTEGER, \"column\" INTEGER, \"end_line\" INTEGER, \"end_column\" INTEGER, \"start_byte\" BIGINT, \"end_byte\" BIGINT, \"evidence\" VARCHAR, \"language\" VARCHAR, \"syntax\" VARCHAR, \"statement\" VARCHAR",
+      "grain": "one row per import, include or require"
+    },
+    "skipped": {
+      "artifact": "parse_summary.json",
+      "caveat": "Every file that was not parsed, with the reason. These are decisions, not defects: the extension is declared non-source, or no grammar exists for it because it is a data format rather than a language. A reason that does not begin \"not parsed:\" is something that went wrong and is worth reading. Add an extension to terrain.non_source_extensions to stop seeing it here at all.",
+      "collection": "skipped",
+      "columns": "\"file\" VARCHAR, \"reason\" VARCHAR",
+      "grain": "one row per file that was not parsed, with the reason"
+    },
+    "symbol": {
+      "artifact": "maps/symbols.json",
+      "caveat": "kind is the grammar's own node type with its suffix removed, so it is the grammar's vocabulary and not a normalized one: class, struct, trait and interface all appear as the language spells them. A name of <anonymous> means the grammar declared no name field and no identifier child.",
+      "collection": "symbols",
+      "columns": "\"file\" VARCHAR, \"line\" INTEGER, \"column\" INTEGER, \"end_line\" INTEGER, \"end_column\" INTEGER, \"start_byte\" BIGINT, \"end_byte\" BIGINT, \"evidence\" VARCHAR, \"language\" VARCHAR, \"kind\" VARCHAR, \"name\" VARCHAR",
+      "grain": "one row per declaration"
+    },
+    "test": {
+      "artifact": "tests.json",
+      "caveat": "Discovery is by DIRECTORY AND FILENAME CONVENTION ONLY. Nothing here was executed and no outcome is recorded, so this says a test exists and never that it passes.",
+      "collection": "tests",
+      "columns": "\"file\" VARCHAR, \"language\" VARCHAR, \"discovery\" VARCHAR",
+      "grain": "one row per file that looks like a test"
+    },
+    "unresolved": {
+      "artifact": "dependencies.json",
+      "caveat": "Usually a third-party or standard-library import, which is correct and not a defect. Absence from this table is not evidence an edge was found.",
+      "collection": "unresolved_imports",
+      "columns": "\"file\" VARCHAR, \"statement\" VARCHAR, \"evidence\" VARCHAR",
+      "grain": "one row per import that matched no file in this repository"
+    }
+  }
+}

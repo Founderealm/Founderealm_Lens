@@ -1,0 +1,21 @@
+# Local verification environment. The seed needs 3.10+; this is how it gets one.
+.venv/
+
+__pycache__/
+*.pyc
+**/.DS_Store
+
+# Seed-owned installed dependencies and transient bootstrap state.
+/founderealm/dependencies/
+/founderealm/dependencies.next/
+/founderealm/cache/
+/founderealm/grammars/
+
+# Local, not shipped. Maintainer notes and working context, not product.
+skill.md
+IMPLEMENTATION_HISTORY.md
+
+# Build output.
+/dist/
+/build/
+*.egg-info/

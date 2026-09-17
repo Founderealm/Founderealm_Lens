@@ -1,0 +1,52 @@
+name: release
+
+# Publishes on a version tag, using PyPI Trusted Publishing: no token is stored in this
+# repository. Configure the publisher once at pypi.org for Founderealm_Lens / release.yml.
+on:
+  push:
+    tags: ["v*"]
+  # Rehearse the build without releasing. A pipeline that can only be exercised by
+  # consuming a version number is a pipeline nobody tests until it matters.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pipx run build
+      - run: pipx run twine check dist/*
+      # The tag and the version in pyproject.toml must agree, or the artifact on PyPI
+      # is named something no tag in this repository points at.
+      - name: Tag matches the packaged version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tagged="${GITHUB_REF_NAME#v}"
+          built=$(ls dist/*.tar.gz | sed -E 's/.*founderealm_lens-(.+)\.tar\.gz/\1/')
+          test "$tagged" = "$built" || { echo "tag $tagged != version $built"; exit 1; }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      # Only the upload is gated. Everything before it runs on a rehearsal, so the
+      # artifact round-trip is proven without consuming a version number.
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        if: startsWith(github.ref, 'refs/tags/v')

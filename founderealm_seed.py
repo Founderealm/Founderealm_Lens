@@ -28,7 +28,7 @@ import sys
 import textwrap
 from collections.abc import Iterator
 from importlib.machinery import PathFinder
-from importlib.metadata import distributions
+from importlib.metadata import PackageNotFoundError, distributions, version
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
@@ -266,12 +266,31 @@ def _download_verified_wheels(
     return wheels, provenance
 
 
+def _environment_satisfies(lock: list[dict[str, str]]) -> bool:
+    """True when the interpreter already imports every locked package at its version.
+
+    Installing this as a package declares the same three pins, so they are present
+    before the seed runs. Downloading them again into the repository would be a second
+    copy of what is already importable.
+    """
+    for item in lock:
+        try:
+            present = version(item["name"])
+        except PackageNotFoundError:
+            return False
+        if present != item["version"]:
+            return False
+    return True
+
+
 def _bootstrap(output_dir: Path, dependency_gene: dict[str, Any]) -> dict[str, Any]:
     dependencies_dir = output_dir / "dependencies"
     cache_dir = output_dir / "cache"
-    sys.path.insert(0, str(dependencies_dir))
     lock = dependency_gene["packages"]
     lock_path = output_dir / "dependency-lock.json"
+    if _environment_satisfies(lock):
+        return {"status": "PRESENT_IN_ENVIRONMENT", "packages": lock}
+    sys.path.insert(0, str(dependencies_dir))
     if (
         _dependencies_match_lock(dependencies_dir, lock)
         and PathFinder.find_spec("tree_sitter_language_pack", [str(dependencies_dir)])
@@ -898,6 +917,19 @@ def _write_wrappers(root: Path, output_dir: Path) -> list[str]:
         )
         path.chmod(0o755)
         created.append(name)
+        # Written on every host, not only Windows: a repository is shared, and a tree
+        # germinated on one platform gets opened on another.
+        windows = root / f"{name}.cmd"
+        windows.write_text(
+            "@echo off\r\n"
+            "rem Written by founderealm_seed during activation. The interpreter is pinned\r\n"
+            "rem to the one that germinated this tree. Override with FOUNDEREALM_PYTHON.\r\n"
+            'if defined FOUNDEREALM_PYTHON (set "_FR_PY=%FOUNDEREALM_PYTHON%")'
+            f' else (set "_FR_PY={sys.executable}")\r\n'
+            f'"%_FR_PY%" "%~dp0{output_dir.name}\\{script}"{verb} %*\r\n',
+            encoding="utf-8",
+        )
+        created.append(windows.name)
     return created
 
 
@@ -1407,7 +1439,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
         "from __future__ import annotations\n"
         "import base64, fnmatch, hashlib, importlib, json, os, re, shutil, subprocess, sys\n"
         "from collections.abc import Iterator\nfrom datetime import datetime, timezone\n"
-        "from importlib.machinery import PathFinder\nfrom importlib.metadata import distributions\n"
+        "from importlib.machinery import PathFinder\nfrom importlib.metadata import PackageNotFoundError, distributions, version\n"
         "from pathlib import Path\nfrom typing import Any\nfrom urllib.request import urlopen\n\n"
         f"DNA_JSON = {DNA_JSON!r}\nARTIFACTS = {ARTIFACTS!r}\nROOT = Path(os.environ['FOUNDEREALM_ROOT']).resolve()\nOUT = ROOT / {out_name!r}\n\n"
     )
@@ -1423,6 +1455,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
             _normalized_package_name,
             _installed_distributions,
             _dependencies_match_lock,
+            _environment_satisfies,
             _pip_command,
             _download_verified_wheels,
             _bootstrap,
@@ -1433,6 +1466,7 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
             _normalized_package_name,
             _installed_distributions,
             _dependencies_match_lock,
+            _environment_satisfies,
             _pip_command,
             _download_verified_wheels,
             _bootstrap,
@@ -1601,6 +1635,9 @@ def _survey(root: Path, output_dir: Path, dna: dict[str, Any]) -> dict[str, Any]
 
 def _germination_report(terrain: dict[str, Any], output_dir: Path) -> str:
     """What was found, what was planted, and the one command to run next."""
+    runtime_line = _runtime_sentence(
+        _environment_satisfies(_dna()["dependencies"]["packages"])
+    )
     languages = terrain["languages"]
     shown = ", ".join(f"{name} {count}" for name, count in list(languages.items())[:8])
     if len(languages) > 8:
@@ -1637,8 +1674,8 @@ def _germination_report(terrain: dict[str, Any], output_dir: Path) -> str:
         "  ./verify         check the instrument, not your code",
         "",
         "The seed is finished and can be deleted. It read the file list and nothing else,",
-        "and it downloaded nothing. The first capture installs a hash-verified parser",
-        "runtime and then builds the map, which is a separate thing to agree to.",
+        "and it downloaded nothing.",
+        runtime_line,
         "",
         "  ./capture",
         "",
@@ -1665,6 +1702,19 @@ def _germinate(root: Path, output_dir: Path, dna: dict[str, Any]) -> None:
     _write_gitignore(root, output_dir)
 
 
+def _runtime_sentence(present: bool) -> str:
+    """Say which of the two runtime paths this tree is on, rather than assuming one."""
+    if present:
+        return (
+            "The parser runtime is already installed in this environment, so the first\n"
+            "capture downloads nothing and builds the map straight away."
+        )
+    return (
+        "The first capture installs a hash-verified parser runtime and then builds the\n"
+        "map, which is a separate thing to agree to."
+    )
+
+
 def _activation_notice(root: Path, output_dir: Path) -> str:
     return "\n".join(
         (
@@ -1678,8 +1728,8 @@ def _activation_notice(root: Path, output_dir: Path) -> str:
             "It may create FOUNDEREALM_INSTRUCTIONS.md only when that file is absent.",
             "It will not modify observed source files or send telemetry.",
             "It reads the FILE LIST only, to name the terrain. It parses nothing and",
-            "downloads nothing. The first ./capture installs a hash-verified parser",
-            "runtime and builds the map, which you run yourself when you choose to.",
+            "downloads nothing.",
+            _runtime_sentence(_environment_satisfies(_dna()["dependencies"]["packages"])),
         )
     )
 
@@ -1701,7 +1751,32 @@ def activate(root: Path, output_name: str, *, authorized: bool = False) -> int:
     return 0
 
 
+MINIMUM_PYTHON = (3, 10)
+
+
+def _refuse_old_python() -> int | None:
+    """Stop before writing anything when the interpreter is below the declared floor.
+
+    Installing by pip is gated by requires-python, but this file is also downloaded on
+    its own, where nothing checks. Without this it germinates on 3.9, reports success,
+    and fails at the first capture with the repository already written to.
+    """
+    if sys.version_info >= MINIMUM_PYTHON:
+        return None
+    running = ".".join(str(part) for part in sys.version_info[:3])
+    wanted = ".".join(str(part) for part in MINIMUM_PYTHON)
+    print(
+        f"[Founderealm] Needs Python {wanted} or newer; this is {running}."
+        f"\n[Founderealm] Nothing was written. Run it with a newer interpreter.",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    refusal = _refuse_old_python()
+    if refusal is not None:
+        return refusal
     parser = argparse.ArgumentParser(
         description="Dormant Founderealm Lens seed. No files or dependencies are created without activate."
     )

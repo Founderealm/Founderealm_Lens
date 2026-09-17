@@ -34,7 +34,20 @@ handed over.
 
 ## Use
 
-**Requires Python 3.10 or newer.**
+**Requires Python 3.10 or newer.** It says so and stops, rather than germinating and
+failing later.
+
+```sh
+uv tool install founderealm-lens   # or: pipx install founderealm-lens
+founderealm activate               # survey the repository, plant the tools
+```
+
+Installing resolves the parser runtime for your platform, so the first capture has
+nothing to download. Installing writes nothing to any repository; `activate` asks
+before it creates a single file.
+
+Or take the one file and run it. Nothing else is needed, and it fetches its own
+hash-verified runtime on first capture:
 
 ```sh
 python3 founderealm_seed.py            # dormant: prints help, creates nothing
@@ -50,6 +63,10 @@ the repository:
 ./search     # ask it something; start with ./search views
 ./verify     # check the instrument, not your code
 ```
+
+On Windows, `capture.cmd`, `search.cmd` and `verify.cmd` sit beside them. Both sets are
+written on every host, because a repository germinated on one platform gets opened on
+another.
 
 Run `./capture` when the code has changed. A large, complex repository can take up to
 a minute; a small one is a fraction of a second. That number is not the point. It is

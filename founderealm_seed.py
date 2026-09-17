@@ -1015,7 +1015,7 @@ def _run_capture(root: Path) -> int:
 
     # Written by the seed or the bootstrap, not by a lens, so absence from any
     # `produces` list is correct and not a finding.
-    seed_owned = {"dependency-lock.json", "verification.json"}
+    seed_owned = {"dna.json", "dependency-lock.json", "verification.json"}
     orphans = sorted(
         relative
         for relative in (
@@ -1029,7 +1029,10 @@ def _run_capture(root: Path) -> int:
     )
 
     by_id = {lens["id"]: path for lens, path in lenses}
-    environment = os.environ | {"FOUNDEREALM_ROOT": str(root)}
+    environment = os.environ | {
+        "FOUNDEREALM_ROOT": str(root),
+        "PYTHONDONTWRITEBYTECODE": "1",
+    }
     for identifier in order:
         result = subprocess.run(
             [sys.executable, str(by_id[identifier])],
@@ -1231,6 +1234,22 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
         checks[name] = bool(condition)
         if not condition:
             failures.append({"check": name, "detail": detail})
+
+    on_disk = out_dir / "dna.json"
+    record("dna:file_present", on_disk.is_file(), "dna.json missing; lenses cannot load")
+    if on_disk.is_file():
+        try:
+            parsed = json.loads(on_disk.read_text(encoding="utf-8"))
+        except ValueError as error:
+            parsed = None
+            record("dna:file_parses", False, f"dna.json is not valid JSON: {error}")
+        else:
+            record("dna:file_parses", True)
+            record(
+                "dna:file_matches_verifier",
+                parsed == dna,
+                "dna.json differs from the DNA this verifier was generated with",
+            )
 
     for required in ("shutter.py", "search.py", "verify.py"):
         record(
@@ -1441,7 +1460,10 @@ def _write_lens_package(output_dir: Path, dna: dict[str, Any]) -> None:
         "from collections.abc import Iterator\nfrom datetime import datetime, timezone\n"
         "from importlib.machinery import PathFinder\nfrom importlib.metadata import PackageNotFoundError, distributions, version\n"
         "from pathlib import Path\nfrom typing import Any\nfrom urllib.request import urlopen\n\n"
-        f"DNA_JSON = {DNA_JSON!r}\nARTIFACTS = {ARTIFACTS!r}\nROOT = Path(os.environ['FOUNDEREALM_ROOT']).resolve()\nOUT = ROOT / {out_name!r}\n\n"
+        f"ARTIFACTS = {ARTIFACTS!r}\nROOT = Path(os.environ['FOUNDEREALM_ROOT']).resolve()\nOUT = ROOT / {out_name!r}\n"
+        "# Read, not embedded: a lens is meant to be opened and understood, and a copy of\n"
+        "# the DNA in every lens buries the twenty lines that are the lens.\n"
+        "DNA_JSON = (OUT / 'dna.json').read_text(encoding='utf-8')\n\n"
     )
     shared_primitives = (_dna, _write_json)
     recipe_helpers = {
@@ -1697,6 +1719,7 @@ def _germinate(root: Path, output_dir: Path, dna: dict[str, Any]) -> None:
         "lenses/__init__.py",
     ):
         (output_dir / obsolete).unlink(missing_ok=True)
+    _write_json(output_dir / "dna.json", _dna())
     _write_wrappers(root, output_dir)
     _write_instructions(root)
     _write_gitignore(root, output_dir)
@@ -1750,6 +1773,9 @@ def _activation_notice(root: Path, output_dir: Path, start: Path | None = None) 
             f"Write scope: {output_dir}",
             "",
             "It will create shutter, search, verification, installer, lens, JSON, Markdown, cache, and local parser-runtime files.",
+            "Nothing it writes is hidden: one visible directory, three visible commands.",
+            "It appends entries to .gitignore, or creates that file if it is absent, so",
+            "the runtime it installs is not committed to your repository.",
             "It may create FOUNDEREALM_INSTRUCTIONS.md only when that file is absent.",
             "It will not modify observed source files or send telemetry.",
             "It reads the FILE LIST only, to name the terrain. It parses nothing and",

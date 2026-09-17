@@ -26,9 +26,9 @@ import founderealm_code as product
 # DNA is data, not host-specific behavior.
 DNA_FILENAME = "lens_dna.json"
 
-# The sidecar is the blueprint. It is read while a tree is being built and never after:
-# every generated file carries the declarations it needs, so the seed and this file can
-# both be deleted once the tree exists.
+# The declarations are a blueprint: read while a tree is built and never after,
+# because every generated file carries the declarations it needs. Once a tree exists,
+# all three files can be deleted.
 
 def _dna_path() -> Path:
     """The data file this program reads. Beside the seed, or beside the installed module."""
@@ -109,7 +109,7 @@ def _recipe_closure(recipe: str) -> tuple[Any, ...]:
 def _recipe_dna(recipe: str, helper_source: str, dna: dict[str, Any]) -> dict[str, Any]:
     """The declarations this lens reads, so it can carry them and owe nothing at runtime.
 
-    A germinated tree must keep working after the seed and its sidecar are deleted, so
+    A germinated tree must keep working after all three files are deleted, so
     no generated file may read a declarations file. Only the keys the code names travel.
     """
     text = recipe + helper_source

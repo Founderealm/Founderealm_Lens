@@ -57,14 +57,12 @@ uv tool install founderealm-lens   # or: pipx install founderealm-lens
 founderealm activate               # survey the repository, plant the tools
 ```
 
-Installing resolves the parser runtime for your platform and brings the sidecar with it,
-so there is nothing to place by hand.
+Installing brings all three files and resolves the parser runtime for your platform, so
+there is nothing to place by hand and the first capture has nothing to download.
+Installing writes nothing to any repository; `activate` asks before it creates a single
+file.
 
-Installing resolves the parser runtime for your platform, so the first capture has
-nothing to download. Installing writes nothing to any repository; `activate` asks
-before it creates a single file.
-
-Or take the two files and run them. No package manager is involved, and the seed
+Or take the three files and run them. No package manager is involved, and the seed
 fetches its own hash-verified runtime on first capture:
 
 ```sh
@@ -72,8 +70,8 @@ python3 founderealm_seed.py            # dormant: prints help, creates nothing
 python3 founderealm_seed.py activate   # survey the repository, plant the tools
 ```
 
-`founderealm_code.py` and `lens_dna.json` must sit beside the seed. If they do not, the
-seed says so and writes nothing.
+All three must sit in the same directory. If one is missing, the seed says which and
+writes nothing.
 
 ### What it costs
 

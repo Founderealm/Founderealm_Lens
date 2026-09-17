@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "founderealm-lens"
-version = "0.3.0"
+version = "0.3.1"
 description = "A map for AI coding agents: one Python file that surveys a repository it has never seen and leaves behind a SQL-queryable map of symbols, imports and call sites. Reads source, never executes it."
 readme = "README.md"
 license = "Apache-2.0"

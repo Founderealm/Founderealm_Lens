@@ -1715,12 +1715,37 @@ def _runtime_sentence(present: bool) -> str:
     )
 
 
-def _activation_notice(root: Path, output_dir: Path) -> str:
+def _climb_notice(start: Path, root: Path) -> str:
+    """Say so when the repository root is not the directory the command was typed in.
+
+    The root is found by walking up to a .git, which lands correctly from inside a
+    project and lands on the wrong terrain when the directory merely sits under an
+    unrelated repository, a home directory kept in git being the usual one. Silently
+    mapping somewhere other than where the operator is standing is the surprise this
+    prevents; the scope lines alone read as confirmation, not as a change of place.
+    """
+    start = start.resolve()
+    if start == root:
+        return ""
+    return "\n".join(
+        (
+            "",
+            f"NOTE: you typed this in  {start}",
+            f"      which sits under a repository rooted at  {root}",
+            "      and that root, not the directory you are in, is what will be mapped.",
+            "      To map the directory you are in instead, run it with:  --root .",
+            "",
+        )
+    )
+
+
+def _activation_notice(root: Path, output_dir: Path, start: Path | None = None) -> str:
     return "\n".join(
         (
             "Founderealm Lens: Informed Activation",
             "",
             "This creates a repository-local intelligence camera for evidence-led navigation.",
+            _climb_notice(start if start is not None else root, root),
             f"Read scope:  {root}",
             f"Write scope: {output_dir}",
             "",
@@ -1734,16 +1759,24 @@ def _activation_notice(root: Path, output_dir: Path) -> str:
     )
 
 
-def activate(root: Path, output_name: str, *, authorized: bool = False) -> int:
-    """Survey the repository, write local tooling, and stop before capture."""
+def activate(
+    root: Path, output_name: str, *, authorized: bool = False, climb: bool = True
+) -> int:
+    """Survey the repository, write local tooling, and stop before capture.
+
+    climb=False honours the given directory as the root. A named root is an instruction,
+    so walking up out of it would override the operator rather than help them.
+    """
     dna = _dna()
-    root = _find_repo_root(root)
+    requested = root
+    root = _find_repo_root(root) if climb else root.resolve()
     output_dir = (root / output_name).resolve()
     if output_dir == root or root not in output_dir.parents:
         raise ValueError(
             "output directory must be a dedicated directory inside the repository"
         )
     if not authorized:
+        print(_climb_notice(requested, root), end="")
         raise PermissionError("activation requires explicit authorization")
     terrain = _survey(root, output_dir, dna)
     _germinate(root, output_dir, dna)
@@ -1784,7 +1817,13 @@ def main(argv: list[str] | None = None) -> int:
     activate_parser = subparsers.add_parser(
         "activate", help="germinate Founderealm Lens in a repository"
     )
-    activate_parser.add_argument("--root", type=Path, default=Path.cwd())
+    activate_parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="map this directory, exactly; without it the repository root above the "
+        "current directory is found and mapped",
+    )
     activate_parser.add_argument("--output", default=_dna()["activation"]["output_dir"])
     args = parser.parse_args(argv)
     if args.command != "activate":
@@ -1794,9 +1833,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     try:
-        root = _find_repo_root(args.root)
+        climb = args.root is None
+        start = Path.cwd() if climb else args.root
+        root = _find_repo_root(start) if climb else start.resolve()
         output_dir = (root / args.output).resolve()
-        print(_activation_notice(root, output_dir))
+        print(_activation_notice(root, output_dir, start))
         try:
             answer = input("Authorize these writes? [y/N] ").strip().lower()
         except EOFError:
@@ -1807,7 +1848,7 @@ def main(argv: list[str] | None = None) -> int:
         if answer not in {"y", "yes"}:
             print("[Founderealm] Activation cancelled; no files were written.")
             return 0
-        return activate(root, args.output, authorized=True)
+        return activate(root, args.output, authorized=True, climb=False)
     except (OSError, PermissionError, RuntimeError, ValueError) as error:
         print(f"[Founderealm] Activation failed honestly: {error}", file=sys.stderr)
         return 1

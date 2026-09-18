@@ -1249,6 +1249,7 @@ def _verify_instrument(out_dir: Path, dna: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "status": "PASS" if not failures else "FAIL",
+        "genome": dna.get("identity", {}).get("genome_version"),
         "scope": "structural contracts and artifact integrity; not semantic claim correctness",
         "lens_count": len(lenses),
         "lens_evidence": {
@@ -1387,7 +1388,7 @@ def lens_contracts() -> None:
 def lens_ledger() -> None:
     files = json.loads((OUT / 'maps' / 'files.json').read_text())['files']
     plan = json.loads((OUT / 'lens_plan.json').read_text())
-    matrix = {'provenance': {'generator': 'ledger_lens'}, 'steps': plan['steps'], 'plan': plan['order'], 'blocked': plan['blocked'], 'orphans': plan['orphans']}
+    matrix = {'provenance': {'generator': 'ledger_lens', 'genome': _dna()['identity']['genome_version']}, 'steps': plan['steps'], 'plan': plan['order'], 'blocked': plan['blocked'], 'orphans': plan['orphans']}
     _write_json(OUT / 'execution_matrix.json', matrix)
     summary = {'files_parsed': len(files), 'symbols': len(json.loads((OUT / 'maps' / 'symbols.json').read_text())['symbols']), 'imports': len(json.loads((OUT / 'maps' / 'imports.json').read_text())['imports']), 'calls': len(json.loads((OUT / 'maps' / 'calls.json').read_text())['calls']), 'skipped_files': len(json.loads((OUT / 'parse_summary.json').read_text())['skipped'])}
     fingerprint = _repository_fingerprint(files)

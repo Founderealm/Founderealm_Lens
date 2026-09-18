@@ -75,10 +75,22 @@ writes nothing.
 
 ### What it costs
 
-The three files are about 80 KB and readable end to end before you run anything. What they install is not small: the parser runtime and query engine are
-roughly 60 MB, and a germinated tree with compiled grammars is around 85 MB. That is
-the price of parsing 371 languages offline, and it is all inside the repository or the
-environment you installed into.
+Sixteen complete copies of this tool fit on a 3.5 inch floppy disk. Thirty-eight copies
+of the wheel that `pip` actually installs. The whole thing is 92 KB of text you can read
+start to finish before deciding whether to trust it, which is the point: you should read
+it before you run it, and it is short enough that you can.
+
+What it installs does not fit on a floppy. A germinated tree runs about 87 MB, which is
+sixty-two disks, and you would be swapping them for a while. That weight is 371 compiled
+grammars and a query engine — borrowed, pinned to exact versions, and verified against
+the hashes the registry publishes for those exact files. Delete it with `rm -rf` at any
+moment and the next `./capture` rebuilds it; there is no state in there to lose and no
+point at which you are finished with it. None of it is ours and none of it is
+load-bearing to understanding what the program does.
+
+That is the trade. The part with a name on it stays small enough to audit by reading.
+The part that is heavy is disposable, sits inside the repository or the environment you
+installed into, and never phones anywhere.
 
 Activation reads the file list, names the terrain, writes the tooling, and stops. It
 parses nothing and downloads nothing, and it asks before writing anything. Then, in
@@ -261,6 +273,22 @@ source and write their declared artifacts. Ones you add are yours to trust.
   no outcome is recorded, so the tool can say a test exists and never that it passes.
 - **Tree-sitter grammars are compiled native code** loaded into the process. That is
   inherent to Tree-sitter rather than to this tool, and it is worth knowing.
+
+## On the version number
+
+It is not sequential and it is not going to be. The first number moves when the shape of
+the three files changes. The other two are fixed, and they were chosen rather than
+counted.
+
+One of them is a number that means nothing. It was picked arbitrarily, stated with
+total confidence, and has been repeated ever since by people who never asked where it
+came from. The other is a number you can arrive at from three unrelated directions — a
+ratio, a root, and a cosine — and get the same digits every time.
+
+They sit next to each other on purpose, because this tool exists to tell those two kinds
+of number apart, and it seemed fair to make the reader do it once before trusting it to.
+
+Which is which is not written down anywhere. Check them.
 
 ## License
 

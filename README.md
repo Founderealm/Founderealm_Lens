@@ -57,13 +57,14 @@ uv tool install founderealm-lens   # or: pipx install founderealm-lens
 founderealm activate               # survey the repository, plant the tools
 ```
 
-Installing brings all three files and resolves the parser runtime for your platform, so
-there is nothing to place by hand and the first capture has nothing to download.
+Installing brings all three files and the parser runtime for your platform: Tree-sitter,
+the grammar pack, and DuckDB. It does not bring the grammars themselves. The grammar pack
+fetches those on the first capture, so the first capture needs the network either way.
 Installing writes nothing to any repository; `activate` asks before it creates a single
 file.
 
-Or take the three files and run them. No package manager is involved, and the seed
-fetches its own hash-verified runtime on first capture:
+Or take the three files and run them. No package manager is involved. The first capture
+then fetches the parser runtime as well, pinned and hash-verified, and the grammars:
 
 ```sh
 python3 founderealm_seed.py            # dormant: prints help, creates nothing
@@ -75,22 +76,27 @@ writes nothing.
 
 ### What it costs
 
-Sixteen complete copies of this tool fit on a 3.5 inch floppy disk. Thirty-eight copies
+Fifteen complete copies of this tool fit on a 3.5 inch floppy disk. Thirty-eight copies
 of the wheel that `pip` actually installs. The whole thing is 92 KB of text you can read
 start to finish before deciding whether to trust it, which is the point: you should read
 it before you run it, and it is short enough that you can.
 
-What it installs does not fit on a floppy. A germinated tree runs about 87 MB, which is
-sixty-two disks, and you would be swapping them for a while. That weight is 371 compiled
-grammars and a query engine — borrowed, pinned to exact versions, and verified against
-the hashes the registry publishes for those exact files. Delete it with `rm -rf` at any
-moment and the next `./capture` rebuilds it; there is no state in there to lose and no
-point at which you are finished with it. None of it is ours and none of it is
-load-bearing to understanding what the program does.
+What it installs does not fit on a floppy. On the raw-file path a germinated tree runs
+about 80 MB, measured on macOS arm64 and within a few megabytes of that elsewhere, which
+is fifty-odd disks, and you would be swapping them for a while. Most of that is the
+parser runtime and the query engine, pinned to exact versions and verified against the
+SHA-256 the package index publishes for those exact files. The rest is the grammar
+pack's archive of all 371 grammars for your platform, 22 to 26 MB depending on the
+platform, of which only the grammars your repository actually uses are unpacked.
+Installed with `pip` or `uv`, the runtime lives in that environment instead and the tree
+holds only the grammars. Delete any of it with `rm -rf` at any moment and the next
+`./capture` fetches it again; there is no state in there to lose and no point at which
+you are finished with it. None of it is ours and none of it is load-bearing to
+understanding what the program does.
 
 That is the trade. The part with a name on it stays small enough to audit by reading.
 The part that is heavy is disposable, sits inside the repository or the environment you
-installed into, and never phones anywhere.
+installed into, and reaches the network only to fetch itself.
 
 Activation reads the file list, names the terrain, writes the tooling, and stops. It
 parses nothing and downloads nothing, and it asks before writing anything. Then, in
@@ -106,8 +112,9 @@ On Windows, `capture.cmd`, `search.cmd` and `verify.cmd` sit beside them. Both s
 written on every host, because a repository germinated on one platform gets opened on
 another.
 
-Run `./capture` when the code has changed. A large, complex repository can take up to
-a minute; a small one is a fraction of a second. That number is not the point. It is
+Run `./capture` when the code has changed. The first one also waits on its downloads.
+After that, a large, complex repository can take up to a minute; a small one is a
+fraction of a second. That number is not the point. It is
 paid once per change and it replaces re-deriving the same context on every question
 you ask until the next one.
 
@@ -234,20 +241,27 @@ Activation creates only its own named things: `./capture`, `./search`, `./verify
 the `founderealm/` evidence directory, `FOUNDEREALM_INSTRUCTIONS.md` if no such file exists,
 and its own entries appended to `.gitignore`. Source files are not modified.
 
-Parser dependencies install under `founderealm/dependencies/`, inside the repository, never
-into your home directory. Wheels are pinned to exact versions and each is checked
-against the SHA-256 the package index publishes; grammars arrive as one archive whose
-digest is published in a manifest inside a wheel that was already verified.
+On the raw-file path, parser dependencies install under `founderealm/dependencies/`,
+inside the repository, never into your home directory. Wheels are pinned to exact
+versions and each is checked against the SHA-256 the package index publishes. Grammars
+are fetched by the grammar pack into `founderealm/grammars/`, also inside the
+repository: it downloads a manifest from the pack's GitHub release, which names the
+archive for your platform and its SHA-256, and keeps the archive under that digest.
+That manifest arrives over TLS from GitHub, not from inside a verified wheel, so the
+grammars rest on GitHub's release as published.
 
-After that first capture there is no network traffic at all. You do not have to take
-that on faith:
+After that first capture there is no network traffic, as long as `founderealm/grammars/`
+is left in place: a language the repository gains later is unpacked from the archive
+kept there, not fetched. You do not have to take that on faith:
 
 ```sh
 HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 ./capture
 ```
 
-If that succeeds, nothing reached out. If something ever does, that command starts
-failing.
+If every file is mapped, nothing reached out. If something needed the network, the
+grammar it wanted does not load, and the files it would have parsed appear in
+`./search "SELECT * FROM skipped"` with that reason. Capture itself still exits zero, so
+read that table rather than the exit code.
 
 ## Lenses are examples, not a framework
 

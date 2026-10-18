@@ -2,7 +2,7 @@
 
 **Your whole codebase as one SQL database for Claude Code, in any language. Like grep, with joins.**
 
-Version 2.0.0-beta.1, a public beta. Tested by hand on macOS (Apple silicon) and Linux
+Version 2.0.0-beta.2, a public beta. Tested by hand on macOS (Apple silicon) and Linux
 (arm64). Every release is also built and checked on Linux (x86_64) and Windows (x86_64)
 before it is published, but those two have not yet been tested by hand.
 
@@ -44,10 +44,18 @@ Everything stays on your machine, in the repository you are working in.
 - **It reads** the files git lists (or every file, in a folder without git), minus what
   `terrain.toml` leaves out. A question can read files inside the repository and none
   outside it.
-- **It needs the network** only to fetch its binary once per version, from this
-  repository's releases, checked against the SHA-256 the plugin carries, and to fetch each
-  language's grammar the first time it meets that language, from the
-  [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack) release.
+- **It needs the network** only to fetch its binary once per version and the grammars once
+  per repository, both from this repository's releases, each checked against its SHA-256:
+  the binary against the one the plugin carries, the grammars against the manifest of
+  release `grammars-v1.22.1`, Founderealm's unchanged mirror of the
+  [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack)
+  release, which carries every grammar's license.
+- **It checks Bash calls** through one hook. Claude Code hands it each shell command
+  before it runs; if the command runs the lens binary or its launcher, the hook blocks it
+  and points the agent to the lens tools instead. In a shell, an agent trims long output
+  with `| head`, `| tail` or a redirect, and a lens answer cut that way loses the caveats
+  and counts that say what its rows mean. Every other command runs untouched. The hook
+  keeps nothing and sends nothing.
 
 ## What it never does
 
@@ -82,6 +90,8 @@ claude plugin install founderealm-lens@founderealm
 
 The first time the plugin starts, its launcher downloads the binary for your platform from
 this repository's releases and runs it only if its SHA-256 matches the one in the plugin.
+Binaries are built for macOS on Apple silicon, Linux (x86_64 and arm64, with glibc 2.28 or
+newer: RHEL 8, Debian 10, Ubuntu 20.04 and later) and Windows (x86_64).
 
 ### Use
 
@@ -111,6 +121,22 @@ When the plugin updates, the next session uses the new version. Nothing in your 
 changes until the next capture, which rebuilds the map; your settings, corrections and saved
 queries are never written over. `lens_status` shows the version running beside the one that
 wrote the map, and the agent captures again when they differ.
+
+### Troubleshooting
+
+- **The lens tools are missing.** `/mcp` in Claude Code shows whether the `lens` server
+  connected. The launcher writes what went wrong to the server's log: no prebuilt binary
+  for this platform, a download that failed, or a SHA-256 that did not match (the file is
+  deleted and nothing runs). After an update, start a new session.
+- **A download fails.** The binary and the grammars come from `github.com` and GitHub's
+  release download host; a proxy or firewall has to allow both.
+- **A file is FAILED with "the grammar ... could not be fetched".** The first capture in a
+  repository needs the network for the grammars. Capture again once it is there.
+- **Linux says a `GLIBC_` version is not found.** The system is older than glibc 2.28.
+- **The answers look stale.** `lens_status` says how old the map is; capture again.
+
+Anything else goes to the [issues](https://github.com/Founderealm/Founderealm_Lens/issues),
+and a security problem to [SECURITY.md](SECURITY.md).
 
 ## Who
 

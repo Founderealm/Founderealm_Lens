@@ -4,11 +4,21 @@ The founderealm-lens binary is built from Founderealm's own source and the Rust 
 compiled into the binary for at least one platform (a crate used only on Windows or only on
 Linux is listed too). DuckDB (MIT) and tree-sitter (MIT) are compiled in from their own C and
 C++ sources by libduckdb-sys and tree-sitter. Each license is the crate's own, as its
-Cargo.toml declares it; the crate's repository has its full text.
+Cargo.toml declares it; the crate's repository has its full text. The Linux binaries also
+carry LLVM's C++ runtime (libc++, libc++abi and libunwind, Apache-2.0 WITH LLVM-exception,
+[llvm-project](https://github.com/llvm/llvm-project)), which Zig compiles in when it builds
+them against glibc 2.28; from the system they load only the C library.
 
-Grammars are not in the binary. The first capture in a repository fetches the grammars its
-files need from the tree-sitter-language-pack release named by that crate's version, into
-founderealm/grammars/; each grammar is under its own license, which the language pack lists.
+Grammars are not in the binary. The first capture in a repository fetches them into
+founderealm/grammars/, one bundle of every grammar for the platform, from Founderealm's
+mirror of the tree-sitter-language-pack release that crate's version names: release
+[grammars-v1.22.1](https://github.com/Founderealm/Founderealm_Lens/releases/tag/grammars-v1.22.1),
+with the bundles unchanged. Each grammar is under its own license. That release carries the
+language pack's `GRAMMAR_NOTICES-1.22.1.md`, which names every grammar's repository, revision
+and license and holds each license text, and Founderealm's `SUPPLEMENT.md`, which carries the
+license and copyright notices of the two grammars (slint and t32) whose texts those notices
+miss. Every license file was checked against its grammar's repository at the pinned revision
+before the release was published.
 
 This list is generated from `cargo metadata` and is regenerated whenever a dependency moves.
 

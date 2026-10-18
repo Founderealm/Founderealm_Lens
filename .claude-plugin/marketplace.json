@@ -10,7 +10,7 @@
     {
       "name": "founderealm-lens",
       "description": "Your whole codebase as one SQL database for Claude Code, in any language: like grep, with joins.",
-      "source": "./plugin",
+      "source": "./",
       "category": "development"
     }
   ]

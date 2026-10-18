@@ -19,20 +19,20 @@ case "$(uname -s)" in
     Darwin) os=darwin ;;
     Linux) os=linux ;;
     MINGW* | MSYS* | CYGWIN*) os=windows ;;
-    *) fail "no prebuilt binary for $(uname -s); build one with cargo in kernel/." ;;
+    *) fail "no prebuilt binary for $(uname -s); open an issue at https://github.com/Founderealm/Founderealm_Lens/issues." ;;
 esac
 # Apple silicon only: no current macOS runs on an Intel Mac.
-[ "$os" = darwin ] && [ "$(uname -m)" = x86_64 ] && fail "no prebuilt binary for Intel Macs; build one with cargo in kernel/."
+[ "$os" = darwin ] && [ "$(uname -m)" = x86_64 ] && fail "no prebuilt binary for Intel Macs; open an issue at https://github.com/Founderealm/Founderealm_Lens/issues."
 case "$(uname -m)" in
     arm64 | aarch64) arch=arm64 ;;
     x86_64 | amd64) arch=x86_64 ;;
-    *) fail "no prebuilt binary for $(uname -m); build one with cargo in kernel/." ;;
+    *) fail "no prebuilt binary for $(uname -m); open an issue at https://github.com/Founderealm/Founderealm_Lens/issues." ;;
 esac
 name="founderealm-lens-$os-$arch"
 [ "$os" = windows ] && name="$name.exe"
 
 [ -f "$here/RELEASE" ] && [ -f "$here/SHA256SUMS" ] ||
-    fail "no release is pinned and no local build is in $here. Build one: cargo build --release in kernel/, then copy target/release/founderealm-lens here."
+    fail "this copy of the plugin names no release and holds no local build in $here; update or reinstall the plugin."
 release=$(tr -d ' \r\n' < "$here/RELEASE")
 want=$(awk -v n="$name" '{ f = $2; sub(/^\*/, "", f) } f == n { print $1 }' "$here/SHA256SUMS")
 [ -n "$want" ] || fail "release $release has no binary for $os-$arch."

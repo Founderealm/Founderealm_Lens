@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "lens": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/lens",
+      "command": "${CLAUDE_PLUGIN_ROOT}/server/lens",
       "args": ["mcp"],
       "alwaysLoad": true,
       "env": {

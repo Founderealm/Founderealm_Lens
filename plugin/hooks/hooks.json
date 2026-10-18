@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "grep -Eq '(\"command\":[[:space:]]*\"|[;&|(][[:space:]]*)[^[:space:]\";&|]*(founderealm-lens|bin/lens)([[:space:]\")<]|$)' && { cat \"${CLAUDE_PLUGIN_ROOT}/hooks/door.md\" >&2; exit 2; }; exit 0"
+            "command": "grep -Eq '(\"command\":[[:space:]]*\"|[;&|(][[:space:]]*)[^[:space:]\";&|]*(founderealm-lens|server/lens)([[:space:]\")<]|$)' && { cat \"${CLAUDE_PLUGIN_ROOT}/hooks/door.md\" >&2; exit 2; }; exit 0"
           }
         ]
       }

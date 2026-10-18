@@ -1,6 +1,6 @@
 # Third-party software
 
-The founderealm-lens binary is built from this repository and the Rust crates below, every one
+The founderealm-lens binary is built from Founderealm's own source and the Rust crates below, every one
 compiled into the binary for at least one platform (a crate used only on Windows or only on
 Linux is listed too). DuckDB (MIT) and tree-sitter (MIT) are compiled in from their own C and
 C++ sources by libduckdb-sys and tree-sitter. Each license is the crate's own, as its

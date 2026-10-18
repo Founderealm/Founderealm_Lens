@@ -1,5 +1,6 @@
 {
   "name": "founderealm-lens",
+  "displayName": "Founderealm Lens",
   "version": "2.0.0-beta.1",
   "description": "Your whole codebase as one SQL database for Claude Code, in any language: like grep, with joins. It reads every file once with tree-sitter into a local DuckDB map of every definition, call, comment and syntax node, so your agent asks where something is defined, what calls it, what a change touches and what nothing uses. Reads source, never runs it.",
   "author": {
@@ -9,6 +10,9 @@
   "homepage": "https://github.com/Founderealm/Founderealm_Lens",
   "repository": "https://github.com/Founderealm/Founderealm_Lens",
   "license": "Apache-2.0",
+  "icon": "./logo.png",
+  "documentationUrl": "https://github.com/Founderealm/Founderealm_Lens#readme",
+  "supportUrl": "https://github.com/Founderealm/Founderealm_Lens/issues",
   "keywords": [
     "code-search",
     "code-navigation",

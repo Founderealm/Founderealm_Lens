@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "founderealm",
+  "description": "Founderealm's tools for AI coding agents.",
+  "owner": {
+    "name": "Founderealm",
+    "url": "https://github.com/Founderealm"
+  },
+  "plugins": [
+    {
+      "name": "founderealm-lens",
+      "description": "Your whole codebase as one SQL database for Claude Code, in any language: like grep, with joins.",
+      "source": "./plugin",
+      "category": "development"
+    }
+  ]
+}

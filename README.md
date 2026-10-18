@@ -1,312 +1,125 @@
 # Founderealm Lens
 
-Three files, one job each. Drop them into a repository they have never seen, run once,
-and they leave behind a small set of tools that answer questions about that repository
-with evidence attached. Then delete all three; what they planted keeps working without
-them.
+**Your whole codebase as one SQL database for Claude Code, in any language. Like grep, with joins.**
 
-| file | what it is |
-|---|---|
-| `founderealm_seed.py` | the coordinator: survey the terrain, write the tools, ask before writing anything |
-| `founderealm_code.py` | the product: every function that gets copied into the repository |
-| `lens_dna.json` | the declarations: parser rules, directories to walk, tables and their caveats, dependency pins, the starter lenses |
+Version 2.0.0-beta.1, a public beta. Tested by hand on macOS (Apple silicon) and Linux
+(arm64). Every release is also built and checked on Linux (x86_64) and Windows (x86_64)
+before it is published, but those two have not yet been tested by hand.
 
-The split is the point. A change to the parser is a change to `founderealm_code.py` and
-lands in every tree. A change to what gets built is one diff in `lens_dna.json` and no
-Python at all. A change to how germination behaves stays in the seed. The filename tells
-you the blast radius before you open the file.
+## What
 
-None of the three is read at runtime. Every generated file carries the declarations its
-own code names, so a germinated tree owes nothing to the thing that made it.
+Founderealm Lens is a Claude Code plugin and MCP server. It reads every file in a
+repository once with [tree-sitter](https://tree-sitter.github.io/) and writes what it reads
+into one local [DuckDB](https://duckdb.org/) database, the map:
 
-It reads source as text and bytes. It never imports, compiles, or executes the code
-it observes.
+- every file, read or skipped, with the reason it was skipped;
+- every named syntax node, with its type, position and text;
+- every definition, call, scope, comment and string that each language's own tree-sitter
+  queries mark.
 
-Built for AI coding agents. Claude Code, Cursor, Copilot, Aider and anything else
-working in a repository it did not write spend most of their context re-deriving the
-same structure: what exists, where it is defined, what calls it. This gives that agent
-a map to query instead, in SQL, and makes it answer with the limits of its own evidence
-attached. It works just as well for a person with a terminal; the agent is simply the
-reader that pays the highest price for a confident wrong answer.
+Your agent then asks the map questions in SQL instead of searching by hand: where a name is
+defined, everything that calls it, what a file holds, what a change to it touches, what
+nothing uses, what the docs say about it, and a diagram of who calls whom. The plugin's
+skill gives the agent a written-out query for each of these.
+
+It works in any language tree-sitter has a grammar for, and knows nothing about any of them
+itself: what it reads comes from each language's grammar and that grammar's own queries.
 
 ## Why
 
-Working in a codebase means answering the same questions over and over. Where is this
-defined, what calls it, what breaks if it moves. Grep answers slowly and, worse,
-answers incompletely without saying so: a slice of the truth reads exactly like all
-of it, and nothing in the output marks where the looking stopped. An AI agent does
-this faster than you can and then fills the gaps it did not find.
+An agent learning a codebase by searching it reads one file, one match, one guess at a time,
+and cannot tell what it missed. The map holds every file at once, so one question answers
+from all of them, and every answer says what limits it: which files were not read, and that
+calls are matched by name, so they are candidates rather than proof.
 
-Map the repository once and those questions become lookups. The cost is paid when the
-code changes; the saving lands on every question asked between changes, which is
-where the hours actually go.
+## Where
 
-And the answers say when they do not know. `ABSENT`, `BLOCKED` and `UNKNOWN` are
-answers here. They mean nobody surveyed that ground, and they are meant to be
-reported as such rather than filled in. That is the property an agent needs most: a
-model cannot tell a partial answer from a complete one unless the tool says which it
-handed over.
+Everything stays on your machine, in the repository you are working in.
 
-## Use
+- **It writes** one folder, `founderealm/`, in the repository: its settings (`terrain.toml`),
+  a `lenses/` folder for saved queries, the map (`map.duckdb`) and the grammars it fetched,
+  plus query corrections in `queries/` if any are written. Its own `.gitignore` keeps the
+  map and the grammars out of git; the settings, saved queries and corrections are yours to
+  commit. Nothing else in the repository is written or changed.
+- **It reads** the files git lists (or every file, in a folder without git), minus what
+  `terrain.toml` leaves out. A question can read files inside the repository and none
+  outside it.
+- **It needs the network** only to fetch its binary once per version, from this
+  repository's releases, checked against the SHA-256 the plugin carries, and to fetch each
+  language's grammar the first time it meets that language, from the
+  [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack) release.
 
-**Requires Python 3.10 or newer.** It says so and stops, rather than germinating and
-failing later.
+## What it never does
 
-```sh
-uv tool install founderealm-lens   # or: pipx install founderealm-lens
-founderealm activate               # survey the repository, plant the tools
-```
+- It never runs the repository's code. It reads source and nothing else.
+- It never sends the repository's contents anywhere.
+- In the repository it writes nothing outside `founderealm/`, and it asks before it writes
+  that folder the first time. Outside the repository it keeps only the downloaded binary,
+  in Claude Code's data folder for the plugin (or `~/.cache/founderealm-lens`).
+- It ships no answers of its own. It carries no corrections for any language, not even ones
+  true of every program in a language, and decides nothing about a codebase before it has
+  read it. Every row comes from the code and the grammar that read it.
 
-Installing brings all three files and the parser runtime for your platform: Tree-sitter,
-the grammar pack, and DuckDB. It does not bring the grammars themselves. The grammar pack
-fetches those on the first capture, so the first capture needs the network either way.
-Installing writes nothing to any repository; `activate` asks before it creates a single
-file.
+## When
 
-Or take the three files and run them. No package manager is involved. The first capture
-then fetches the parser runtime as well, pinned and hash-verified, and the grammars:
+Whenever an agent would otherwise search: before changing a function, to see everything
+that calls it; when looking for code that nothing uses; when learning a repository it has
+never seen; when it needs to know what the docs or the config say. A capture brings the map
+up to the present and is cheap, so the agent captures again whenever the files may have
+changed. Capture takes longer the larger the repository; it has been tested on repositories
+of up to about 26,000 files.
 
-```sh
-python3 founderealm_seed.py            # dormant: prints help, creates nothing
-python3 founderealm_seed.py activate   # survey the repository, plant the tools
-```
+## How
 
-All three must sit in the same directory. If one is missing, the seed says which and
-writes nothing.
+### Install
 
-### What it costs
-
-Fifteen complete copies of this tool fit on a 3.5 inch floppy disk. Thirty-eight copies
-of the wheel that `pip` actually installs. The whole thing is 92 KB of text you can read
-start to finish before deciding whether to trust it, which is the point: you should read
-it before you run it, and it is short enough that you can.
-
-What it installs does not fit on a floppy. On the raw-file path a germinated tree runs
-about 80 MB, measured on macOS arm64 and within a few megabytes of that elsewhere, which
-is fifty-odd disks, and you would be swapping them for a while. Most of that is the
-parser runtime and the query engine, pinned to exact versions and verified against the
-SHA-256 the package index publishes for those exact files. The rest is the grammar
-pack's archive of all 371 grammars for your platform, 22 to 26 MB depending on the
-platform, of which only the grammars your repository actually uses are unpacked.
-Installed with `pip` or `uv`, the runtime lives in that environment instead and the tree
-holds only the grammars. Delete any of it with `rm -rf` at any moment and the next
-`./capture` fetches it again; there is no state in there to lose and no point at which
-you are finished with it. None of it is ours and none of it is load-bearing to
-understanding what the program does.
-
-That is the trade. The part with a name on it stays small enough to audit by reading.
-The part that is heavy is disposable, sits inside the repository or the environment you
-installed into, and reaches the network only to fetch itself.
-
-Activation reads the file list, names the terrain, writes the tooling, and stops. It
-parses nothing and downloads nothing, and it asks before writing anything. Then, in
-the repository:
+With the Claude Code command line:
 
 ```sh
-./capture    # build the map
-./search     # ask it something; start with ./search views
-./verify     # check the instrument, not your code
+claude plugin marketplace add Founderealm/Founderealm_Lens
+claude plugin install founderealm-lens@founderealm
 ```
 
-On Windows, `capture.cmd`, `search.cmd` and `verify.cmd` sit beside them. Both sets are
-written on every host, because a repository germinated on one platform gets opened on
-another.
+The first time the plugin starts, its launcher downloads the binary for your platform from
+this repository's releases and runs it only if its SHA-256 matches the one in the plugin.
 
-Run `./capture` when the code has changed. The first one also waits on its downloads.
-After that, a large, complex repository can take up to a minute; a small one is a
-fraction of a second. That number is not the point. It is
-paid once per change and it replaces re-deriving the same context on every question
-you ask until the next one.
+### Use
 
-## What an answer looks like
+Ask your agent about the code. It starts with `lens_status`, which says whether there is a
+map, what it covers, whether it holds together, and, where your languages' grammars mark
+definitions, three questions about your repository ready to ask. Before the first capture writes `founderealm/`, it asks you.
 
-```
-$ ./search "SELECT kind, name, file, line FROM symbol WHERE kind = 'function'"
+| tool | what it does |
+|---|---|
+| `lens_status` | whether there is a map, how old it is, what it covers, whether it holds together, every table with its columns and caveat, and three questions ready to ask |
+| `lens_query` | one SELECT over the map, or the name of a saved query |
+| `lens_capture` | bring the map up to the present; the first one plants `founderealm/`, once you approve |
 
-kind     | name     | file  | line
-----------------------------------------------------------------------
-function | handler  | m.py  | 1
-function | Widget   | m.ts  | 1
-function | arrow    | m.ts  | 4
+### Tune
 
-3 row(s)
-CAVEAT symbol: kind is the grammar's own node type with its suffix removed, so it is
-the grammar's vocabulary and not a normalized one: class, struct, trait and interface
-all appear as the language spells them. A name of <anonymous> means the grammar
-declared no name field and no identifier child.
-```
+No tool can carry the right settings for every codebase, so the agent using the lens tunes
+it for yours, in files under `founderealm/`: which folders and files are read and by which
+grammar (`terrain.toml`), what a grammar's queries miss in this codebase
+(`queries/<language>/<kind>.scm`), and the questions asked often enough to keep
+(`lenses/<name>.sql`). `lens_status` says where each is needed, and the skill's "fog test"
+finds the calls a language's own queries do not mark. The agent tells you what it changed,
+and you commit those files with your code.
 
-The caveat is the point. It prints beside the rows rather than living in
-documentation, because a correct row with its conditions stripped off is how a
-confident wrong answer gets made. Every table carries one. The `call` table announces
-that it resolves by name, so each row is a candidate call site and not a proven edge.
+### Update
 
-`./search views` lists every table with its columns, its row count and its caveat.
+When the plugin updates, the next session uses the new version. Nothing in your repository
+changes until the next capture, which rebuilds the map; your settings, corrections and saved
+queries are never written over. `lens_status` shows the version running beside the one that
+wrote the map, and the agent captures again when they differ.
 
-## What capture actually computes
+## Who
 
-Capture is not a script that runs eight things in order. It is a fixed point and a
-topological sort over a graph it reads off the files in `founderealm/lenses/`, which is
-why adding or deleting a lens needs no registry and no edit anywhere else.
-
-Let **L** be the lenses found by parsing each file in `lenses/` for its `LENS` block, and
-for each lens `l` let `req(l)` and `prod(l)` be its declared inputs and outputs.
-
-**1. The producer map.** Every artifact is claimed by the lens that declares it.
-
-    P : A -> L,  P(a) = l  where a in prod(l)
-
-**2. Blocking, as a least fixed point.** A lens is blocked if an input exists that
-nothing produces, and blocking then propagates along edges until nothing more changes.
-`E` is the set of external inputs, satisfied by the world rather than by a lens:
-`repository`, `prior_runs`, `dna`, `lens_plan.json`, `all_previous_steps`.
-
-    B_0     = { l : exists r in req(l),  r not in dom(P) + E + optional(l) }
-    B_(n+1) = B_n + { l : exists r in req(l) ∩ dom(P),  P(r) in B_n }
-    B       = the least fixed point of that
-
-**3. The order.** Kahn's algorithm over the runnable subgraph `L \ B`, taking each
-ready set in sorted order so the same tree always produces the same sequence.
-
-    depends(l) = { P(r) : r in req(l) ∩ dom(P) } \ B
-    order      = topological sort of (L \ B, depends)
-
-A cycle is the case where the runnable set is non-empty and no lens is ready. Capture
-stops and names the cycle rather than running part of it.
-
-**4. Orphans.** Artifacts on disk that no present lens claims, minus the ones the seed
-and the bootstrap write for themselves.
-
-    O = { a on disk } \ ( image(P) + seed_owned )
-
-A deleted lens therefore produces two honest signals rather than a crash: its outputs
-appear in `O`, and everything downstream appears in `B`, named.
-
-### The graph as it ships
-
-Read down the left for what a lens eats, right for what it emits. The depth column is
-the level Kahn's algorithm assigns, so lenses at the same depth are independent of each
-other and only their names decide the order.
-
-| depth | lens | requires | produces | evidence |
-|---|---|---|---|---|
-| 0 | `inventory` | *repository* | `inventory.json` | direct filesystem inventory |
-| 1 | `capability` | `inventory.json` | `capabilities.json` | tree-sitter runtime probe |
-| 1 | `tests` | `inventory.json` | `tests.json` | directory and filename convention |
-| 2 | `parsing` | `inventory.json`, `capabilities.json` | `maps/files.json`, `maps/symbols.json`, `maps/imports.json`, `maps/calls.json`, `parse_summary.json` | tree-sitter syntax |
-| 3 | `contracts` | *dna*, `maps/files.json`, `maps/symbols.json`, `maps/imports.json`, `maps/calls.json` | `contracts.json` | structural contract validation |
-| 3 | `dependencies` | `maps/files.json`, `maps/imports.json` | `dependencies.json` | derived import token resolution |
-| 4 | `changes` | `maps/files.json`, `dependencies.json`, *prior_runs* | `changes.json` | file hash and derived impact |
-| 5 | `ledger` | *all previous steps* | `execution_matrix.json`, `history/runs.json` | derived run record |
-
-`parsing` is the only lens that reads source. Everything below depth 2 reads artifacts,
-never files, which is why a wrong answer about a symbol is a `parsing` question and a
-wrong answer about an edge is a `dependencies` question.
-
-### From artifact to answer
-
-`./search` does not read the graph. It materializes each artifact as a table and then
-disables external file access, so a query cannot reach back into the repository.
-
-| table | artifact | collection |
-|---|---|---|
-| `file` | `maps/files.json` | `files` |
-| `symbol` | `maps/symbols.json` | `symbols` |
-| `import` | `maps/imports.json` | `imports` |
-| `call` | `maps/calls.json` | `calls` |
-| `dependency` | `dependencies.json` | `edges` |
-| `unresolved` | `dependencies.json` | `unresolved_imports` |
-| `test` | `tests.json` | `tests` |
-| `impact` | `changes.json` | `impact` |
-| `skipped` | `parse_summary.json` | `skipped` |
-
-Each table carries the caveat that limits it, and the caveat prints with the rows.
-
-## Languages
-
-Symbols, imports and calls are read from Tree-sitter node type names, which grammars
-name by convention, so there is no per-language table to maintain and no language the
-tool refuses. Over three hundred grammars are reachable.
-
-That also means it reads code that declares things by binding them to a name, not
-only code that declares them with a keyword: `const Widget = () => {}` is reported as
-the function `Widget`, and an arrow function sitting in an object literal is found.
-
-Where a grammar will not load, that is reported with the reason rather than passed
-over.
-
-## What it writes, and where
-
-Activation creates only its own named things: `./capture`, `./search`, `./verify`,
-the `founderealm/` evidence directory, `FOUNDEREALM_INSTRUCTIONS.md` if no such file exists,
-and its own entries appended to `.gitignore`. Source files are not modified.
-
-On the raw-file path, parser dependencies install under `founderealm/dependencies/`,
-inside the repository, never into your home directory. Wheels are pinned to exact
-versions and each is checked against the SHA-256 the package index publishes. Grammars
-are fetched by the grammar pack into `founderealm/grammars/`, also inside the
-repository: it downloads a manifest from the pack's GitHub release, which names the
-archive for your platform and its SHA-256, and keeps the archive under that digest.
-That manifest arrives over TLS from GitHub, not from inside a verified wheel, so the
-grammars rest on GitHub's release as published.
-
-After that first capture there is no network traffic, as long as `founderealm/grammars/`
-is left in place: a language the repository gains later is unpacked from the archive
-kept there, not fetched. You do not have to take that on faith:
-
-```sh
-HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9 ./capture
-```
-
-If every file is mapped, nothing reached out. If something needed the network, the
-grammar it wanted does not load, and the files it would have parsed appear in
-`./search "SELECT * FROM skipped"` with that reason. Capture itself still exits zero, so
-read that table rather than the exit code.
-
-## Lenses are examples, not a framework
-
-`founderealm/lenses/` holds eight small scripts. Each declares what it requires, what it
-produces, and what kind of evidence it rests on. The runtime reads those declarations
-out of the files themselves, so **adding a lens means dropping a file in the
-directory**. There is no registry to edit.
-
-Delete the ones you do not want. `./capture` notices: it names artifacts that nothing
-produces any more, and it blocks and names any lens whose input is gone rather than
-failing on it.
-
-**A lens is code, and it runs with your permissions.** The eight that ship only read
-source and write their declared artifacts. Ones you add are yours to trust.
-
-## Limits
-
-- **Structural, not semantic.** `./verify` proves contracts, generated code and
-  artifact integrity, not whether any claim in the maps is true. It says so in its
-  own output.
-- **Call sites resolve by name**, not by receiver type. Candidates, not proven edges.
-- **Tests are found by directory and filename convention.** Nothing is executed and
-  no outcome is recorded, so the tool can say a test exists and never that it passes.
-- **Tree-sitter grammars are compiled native code** loaded into the process. That is
-  inherent to Tree-sitter rather than to this tool, and it is worth knowing.
-
-## On the version number
-
-It is not sequential and it is not going to be. The first number moves when the shape of
-the three files changes. The other two are fixed, and they were chosen rather than
-counted.
-
-One of them is a number that means nothing. It was picked arbitrarily, stated with
-total confidence, and has been repeated ever since by people who never asked where it
-came from. The other is a number you can arrive at from three unrelated directions — a
-ratio, a root, and a cosine — and get the same digits every time.
-
-They sit next to each other on purpose, because this tool exists to tell those two kinds
-of number apart, and it seemed fair to make the reader do it once before trusting it to.
-
-Which is which is not written down anywhere. Check them.
+Made by [Founderealm](https://github.com/Founderealm). Questions and problems go to this
+repository's [issues](https://github.com/Founderealm/Founderealm_Lens/issues). If it helps
+you, you can support it on [Patreon](https://patreon.com/Founderealm).
 
 ## License
 
-Copyright 2026 Founderealm. Licensed under Apache-2.0. See [LICENSE](LICENSE) and
-[NOTICE](NOTICE).
-
-Support ongoing development through [Patreon](https://patreon.com/Founderealm).
+Apache-2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE). The binary is built from private
+source and published under the same license. The licenses of the software compiled into it
+are in [THIRD_PARTY.md](THIRD_PARTY.md), which every release carries beside the binaries.

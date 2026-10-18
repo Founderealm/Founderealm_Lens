@@ -1,0 +1,16 @@
+{
+  "description": "A shell command that runs the lens binary is pointed to the lens tools, where the answer arrives whole and the user sees it.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "grep -Eq '(\"command\":[[:space:]]*\"|[;&|(][[:space:]]*)[^[:space:]\";&|]*(founderealm-lens|server/lens)([[:space:]\")<]|$)' && { cat \"${CLAUDE_PLUGIN_ROOT}/hooks/door.md\" >&2; exit 2; }; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

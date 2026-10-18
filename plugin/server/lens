@@ -1,0 +1,64 @@
+#!/bin/sh
+# Runs the Founderealm Lens binary built for this machine, fetching it once if needed.
+#
+# A local build in this directory wins, for development. Otherwise the binary comes from
+# the release named in RELEASE, and is run only if its SHA-256 matches the one written
+# in SHA256SUMS beside this file: the expected hash comes from the plugin as installed,
+# not from the place the binary is downloaded from. Stdout belongs to MCP, so every
+# message here goes to stderr.
+set -eu
+
+here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+fail() { echo "founderealm-lens: $*" >&2; exit 1; }
+
+if [ -x "$here/founderealm-lens" ]; then
+    exec "$here/founderealm-lens" "$@"
+fi
+
+case "$(uname -s)" in
+    Darwin) os=darwin ;;
+    Linux) os=linux ;;
+    MINGW* | MSYS* | CYGWIN*) os=windows ;;
+    *) fail "no prebuilt binary for $(uname -s); open an issue at https://github.com/Founderealm/Founderealm_Lens/issues." ;;
+esac
+# Apple silicon only: no current macOS runs on an Intel Mac.
+[ "$os" = darwin ] && [ "$(uname -m)" = x86_64 ] && fail "no prebuilt binary for Intel Macs; open an issue at https://github.com/Founderealm/Founderealm_Lens/issues."
+case "$(uname -m)" in
+    arm64 | aarch64) arch=arm64 ;;
+    x86_64 | amd64) arch=x86_64 ;;
+    *) fail "no prebuilt binary for $(uname -m); open an issue at https://github.com/Founderealm/Founderealm_Lens/issues." ;;
+esac
+name="founderealm-lens-$os-$arch"
+[ "$os" = windows ] && name="$name.exe"
+
+[ -f "$here/RELEASE" ] && [ -f "$here/SHA256SUMS" ] ||
+    fail "this copy of the plugin names no release and holds no local build in $here; update or reinstall the plugin."
+release=$(tr -d ' \r\n' < "$here/RELEASE")
+want=$(awk -v n="$name" '{ f = $2; sub(/^\*/, "", f) } f == n { print $1 }' "$here/SHA256SUMS")
+[ -n "$want" ] || fail "release $release has no binary for $os-$arch."
+
+# The plugin's own data directory when Claude Code names one, else the user's cache.
+data=${FOUNDEREALM_LENS_DATA:-}
+# A literal ${ means Claude Code passed the placeholder through unexpanded.
+# shellcheck disable=SC2016
+case "$data" in '' | *'${'*) data="${XDG_CACHE_HOME:-$HOME/.cache}/founderealm-lens" ;; esac
+bin="$data/$release/$name"
+
+sha() {
+    if command -v sha256sum > /dev/null 2>&1; then sha256sum "$1"; else shasum -a 256 "$1"; fi | awk '{ print $1 }'
+}
+
+if [ ! -f "$bin" ] || [ "$(sha "$bin")" != "$want" ]; then
+    mkdir -p "$data/$release"
+    base=${FOUNDEREALM_LENS_BASE_URL:-https://github.com/Founderealm/Founderealm_Lens/releases/download/$release}
+    part="$bin.part.$$"
+    trap 'rm -f "$part"' EXIT
+    echo "founderealm-lens: fetching $name from release $release" >&2
+    curl -fsSL --retry 2 -o "$part" "$base/$name" || fail "could not download $base/$name"
+    got=$(sha "$part")
+    [ "$got" = "$want" ] || fail "SHA-256 of $name is $got, expected $want. It was deleted and nothing was run."
+    chmod +x "$part"
+    mv "$part" "$bin"
+    trap - EXIT
+fi
+exec "$bin" "$@"

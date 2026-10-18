@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "lens": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/server/lens",
+      "args": ["mcp"],
+      "alwaysLoad": true,
+      "env": {
+        "FOUNDEREALM_LENS_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    }
+  }
+}

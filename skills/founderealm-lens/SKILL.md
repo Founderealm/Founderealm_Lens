@@ -91,8 +91,8 @@ there: say so. A correction file with a pattern that never matched says so in `g
 - A wrong column comes back with the columns of every table you named. No rows comes back
   with where to look next: a name spelled otherwise, a file not read, a grammar that marks
   it differently.
-- The binary answers only through these tools. Run from a shell, the plugin points the
-  command back here, where the answer arrives whole and the user sees it.
+- The binary answers only through these tools, where the answer arrives whole and the user
+  sees it. In Claude Code, a shell command that runs it is pointed back here.
 
 ## Recipes
 

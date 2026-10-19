@@ -1,0 +1,13 @@
+# The extension carries only what VS Code runs and what its license requires. The plugin's
+# launcher, hook and Claude Code manifests stay out: VS Code starts the binary itself.
+**
+!package.json
+!extension.js
+!logo.png
+!LICENSE
+!NOTICE
+!README.md
+!THIRD_PARTY.md
+!server/RELEASE
+!server/SHA256SUMS
+!skills/founderealm-lens/SKILL.md

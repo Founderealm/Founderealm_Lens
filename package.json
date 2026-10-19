@@ -1,0 +1,50 @@
+{
+  "name": "founderealm-lens",
+  "displayName": "Founderealm Lens",
+  "publisher": "founderealm",
+  "version": "2.0.0-beta.3",
+  "description": "Your whole codebase as one SQL database for your agent, in any language: like grep, with joins. It reads every file once with tree-sitter into a local DuckDB map of every definition, call, comment and syntax node, so your agent asks where something is defined, what calls it, what a change touches and what nothing uses. Reads source, never runs it.",
+  "license": "Apache-2.0",
+  "icon": "logo.png",
+  "homepage": "https://github.com/Founderealm/Founderealm_Lens#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Founderealm/Founderealm_Lens"
+  },
+  "bugs": {
+    "url": "https://github.com/Founderealm/Founderealm_Lens/issues"
+  },
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "keywords": [
+    "code-search",
+    "code-navigation",
+    "tree-sitter",
+    "duckdb",
+    "sql",
+    "static-analysis",
+    "mcp"
+  ],
+  "activationEvents": [
+    "onMcpCollection:founderealm-lens"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "founderealm-lens",
+        "label": "Founderealm Lens"
+      }
+    ],
+    "chatSkills": [
+      {
+        "path": "./skills/founderealm-lens/SKILL.md"
+      }
+    ]
+  }
+}

@@ -48,7 +48,8 @@ ships the way to look: the map, `lens_status`, and the fog test as a question yo
   share `match`.
 - `grammar`: which query files ran for each language, and any pattern left out and why.
 - `inventory`: what was left out, by directory, and the rule that left it out.
-- `map`: what wrote the map: the kernel's version and the language pack's.
+- `map`: what wrote the map: the kernel's version, the language pack's, and the grammar
+  collection's.
 
 `lens_status` gives every table and saved query with its columns and whole caveat, and
 `checks`: whether the map holds together (every parent, range, capture and leaf where it

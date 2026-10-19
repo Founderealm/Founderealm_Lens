@@ -2,7 +2,7 @@
 
 **Your whole codebase as one SQL database for Claude Code, in any language. Like grep, with joins.**
 
-Version 2.0.0-beta.2, a public beta. Tested by hand on macOS (Apple silicon) and Linux
+Version 2.0.0-beta.3, a public beta. Tested by hand on macOS (Apple silicon) and Linux
 (arm64). Every release is also built and checked on Linux (x86_64) and Windows (x86_64)
 before it is published, but those two have not yet been tested by hand.
 
@@ -44,12 +44,14 @@ Everything stays on your machine, in the repository you are working in.
 - **It reads** the files git lists (or every file, in a folder without git), minus what
   `terrain.toml` leaves out. A question can read files inside the repository and none
   outside it.
-- **It needs the network** only to fetch its binary once per version and the grammars once
-  per repository, both from this repository's releases, each checked against its SHA-256:
-  the binary against the one the plugin carries, the grammars against the manifest of
-  release `grammars-v1.22.1`, Founderealm's unchanged mirror of the
-  [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack)
-  release, which carries every grammar's license.
+- **It needs the network** only to fetch its binary once per version, to ask which grammar
+  collection release is current once each time it starts, and to fetch that release's
+  grammars once per repository, all from this repository's releases, each checked against
+  its SHA-256: the binary against the one the plugin carries, the grammars against the
+  manifest of the collection release. Release 1.0.0 holds 373 grammars: the 372 of the
+  [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack) 1.22.1
+  release, at the same revisions, and MDX. Each release carries every grammar's license in
+  `NOTICES.md`.
 - **It checks Bash calls** through one hook. Claude Code hands it each shell command
   before it runs; if the command runs the lens binary or its launcher, the hook blocks it
   and points the agent to the lens tools instead. In a shell, an agent trims long output
@@ -117,10 +119,11 @@ and you commit those files with your code.
 
 ### Update
 
-When the plugin updates, the next session uses the new version. Nothing in your repository
-changes until the next capture, which rebuilds the map; your settings, corrections and saved
-queries are never written over. `lens_status` shows the version running beside the one that
-wrote the map, and the agent captures again when they differ.
+When the plugin updates, the next session uses the new version, and a new grammar collection
+arrives the same way, without a plugin update. Nothing in your repository changes until the
+next capture, which rebuilds the map; your settings, corrections and saved queries are never
+written over. `lens_status` shows the kernel and collection in use beside the ones that wrote
+the map, and the agent captures again when they differ.
 
 ### Troubleshooting
 

@@ -9,16 +9,18 @@ carry LLVM's C++ runtime (libc++, libc++abi and libunwind, Apache-2.0 WITH LLVM-
 [llvm-project](https://github.com/llvm/llvm-project)), which Zig compiles in when it builds
 them against glibc 2.28; from the system they load only the C library.
 
-Grammars are not in the binary. The first capture in a repository fetches them into
-founderealm/grammars/, one bundle of every grammar for the platform, from Founderealm's
-mirror of the tree-sitter-language-pack release that crate's version names: release
+Grammars are not in the binary. They come from Founderealm's grammar collection, published as
+releases `collection-v<version>` of this repository; release `collection-current` names the one
+in use, which the binary asks once each time it starts. The first capture in a repository with
+a release fetches it into founderealm/grammars/: its manifest, and one bundle of every grammar
+for the platform. Release 1.0.0 holds 373 grammars: the 372 of the tree-sitter-language-pack
+1.22.1 release Founderealm mirrored as
 [grammars-v1.22.1](https://github.com/Founderealm/Founderealm_Lens/releases/tag/grammars-v1.22.1),
-with the bundles unchanged. Each grammar is under its own license. That release carries the
-language pack's `GRAMMAR_NOTICES-1.22.1.md`, which names every grammar's repository, revision
-and license and holds each license text, and Founderealm's `SUPPLEMENT.md`, which carries the
-license and copyright notices of the two grammars (slint and t32) whose texts those notices
-miss. Every license file was checked against its grammar's repository at the pinned revision
-before the release was published.
+at the same revisions, and MDX. Each grammar is under its own license. Every collection release carries `NOTICES.md`,
+which names every grammar's repository, revision and license and holds each license text, with
+those of what the libraries carry beside their grammars: utf8proc, and in the Linux libraries
+of the four grammars with a C++ scanner, LLVM's C++ runtime. Every license file is checked
+against its SHA-256 before a release is made.
 
 This list is generated from `cargo metadata` and is regenerated whenever a dependency moves.
 

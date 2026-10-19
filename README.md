@@ -2,10 +2,11 @@
 
 **Your whole codebase as one SQL database for Claude Code and VS Code, in any language. Like grep, with joins.**
 
-Version 2.0.0-beta.3, a public beta. Tested by hand on macOS (Apple silicon) and Linux
-(arm64). Every release is also built and checked on Linux (x86_64) and Windows (x86_64)
-before it is published, but those two have not yet been tested by hand. The VS Code
-extension has been tested by hand on macOS only.
+Version 2.0.0-beta.3, a public beta; the VS Code extension carries it as 2.1.3, since its
+marketplace takes only plain version numbers. Tested by hand on macOS (Apple silicon) and
+Linux (arm64). Every release is also built and checked on Linux (x86_64) and Windows
+(x86_64) before it is published, but those two have not yet been tested by hand. The VS
+Code extension has been tested by hand on macOS only.
 
 ## What
 

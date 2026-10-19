@@ -1,0 +1,4 @@
+# The launcher and the hook are plumbing. Founderealm Lens itself is a compiled binary
+# from this repository's releases, which GitHub's language count does not see.
+server/lens linguist-detectable=false
+hooks/door.sh linguist-detectable=false

@@ -1,16 +1,18 @@
 # Founderealm Lens
 
-**Your whole codebase as one SQL database for Claude Code, in any language. Like grep, with joins.**
+**Your whole codebase as one SQL database for Claude Code and VS Code, in any language. Like grep, with joins.**
 
 Version 2.0.0-beta.3, a public beta. Tested by hand on macOS (Apple silicon) and Linux
 (arm64). Every release is also built and checked on Linux (x86_64) and Windows (x86_64)
-before it is published, but those two have not yet been tested by hand.
+before it is published, but those two have not yet been tested by hand. The VS Code
+extension has been tested by hand on macOS only.
 
 ## What
 
-Founderealm Lens is a Claude Code plugin and MCP server. It reads every file in a
-repository once with [tree-sitter](https://tree-sitter.github.io/) and writes what it reads
-into one local [DuckDB](https://duckdb.org/) database, the map:
+Founderealm Lens is an MCP server, packaged as a Claude Code plugin and as a VS Code
+extension. It reads every file in a repository once with
+[tree-sitter](https://tree-sitter.github.io/) and writes what it reads into one local
+[DuckDB](https://duckdb.org/) database, the map:
 
 - every file, read or skipped, with the reason it was skipped;
 - every named syntax node, with its type, position and text;
@@ -19,8 +21,8 @@ into one local [DuckDB](https://duckdb.org/) database, the map:
 
 Your agent then asks the map questions in SQL instead of searching by hand: where a name is
 defined, everything that calls it, what a file holds, what a change to it touches, what
-nothing uses, what the docs say about it, and a diagram of who calls whom. The plugin's
-skill gives the agent a written-out query for each of these.
+nothing uses, what the docs say about it, and a diagram of who calls whom. Its skill, in
+both, gives the agent a written-out query for each of these.
 
 It works in any language tree-sitter has a grammar for, and knows nothing about any of them
 itself: what it reads comes from each language's grammar and that grammar's own queries.
@@ -47,25 +49,27 @@ Everything stays on your machine, in the repository you are working in.
 - **It needs the network** only to fetch its binary once per version, to ask which grammar
   collection release is current once each time it starts, and to fetch that release's
   grammars once per repository, all from this repository's releases, each checked against
-  its SHA-256: the binary against the one the plugin carries, the grammars against the
-  manifest of the collection release. Release 1.0.0 holds 373 grammars: the 372 of the
-  [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack) 1.22.1
-  release, at the same revisions, and MDX. Each release carries every grammar's license in
-  `NOTICES.md`.
-- **It checks Bash calls** through one hook. Claude Code hands it each shell command
-  before it runs; if the command runs the lens binary or its launcher, the hook blocks it
-  and points the agent to the lens tools instead. In a shell, an agent trims long output
-  with `| head`, `| tail` or a redirect, and a lens answer cut that way loses the caveats
-  and counts that say what its rows mean. Every other command runs untouched. The hook
-  keeps nothing and sends nothing.
+  its SHA-256: the binary against the one the plugin or the extension carries, the grammars
+  against the manifest of the collection release. Release 1.0.0 holds 373 grammars: the
+  372 of the [tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack)
+  1.22.1 release, at the same revisions, and MDX. Each release carries every grammar's
+  license in `NOTICES.md`.
+- **In Claude Code, it checks Bash calls** through one hook. Claude Code hands it each
+  shell command before it runs; if the command runs the lens binary or its launcher, the
+  hook blocks it and points the agent to the lens tools instead. In a shell, an agent trims
+  long output with `| head`, `| tail` or a redirect, and a lens answer cut that way loses
+  the caveats and counts that say what its rows mean. Every other command runs untouched.
+  The hook keeps nothing and sends nothing. VS Code gives extensions no such hook, so the
+  extension has none.
 
 ## What it never does
 
 - It never runs the repository's code. It reads source and nothing else.
 - It never sends the repository's contents anywhere.
 - In the repository it writes nothing outside `founderealm/`, and it asks before it writes
-  that folder the first time. Outside the repository it keeps only the downloaded binary,
-  in Claude Code's data folder for the plugin (or `~/.cache/founderealm-lens`).
+  that folder the first time. Outside the repository it keeps only the downloaded binary:
+  in Claude Code's data folder for the plugin (or `~/.cache/founderealm-lens`), or in VS
+  Code's storage folder for the extension.
 - It ships no answers of its own. It carries no corrections for any language, not even ones
   true of every program in a language, and decides nothing about a codebase before it has
   read it. Every row comes from the code and the grammar that read it.
@@ -95,6 +99,24 @@ this repository's releases and runs it only if its SHA-256 matches the one in th
 Binaries are built for macOS on Apple silicon, Linux (x86_64 and arm64, with glibc 2.28 or
 newer: RHEL 8, Debian 10, Ubuntu 20.04 and later) and Windows (x86_64).
 
+### In VS Code
+
+The extension needs VS Code 1.101 or later (tested on 1.142). It gives VS Code the same
+server, named Founderealm Lens, and the same skill, so the agent in VS Code's chat has the
+same three tools. VS Code starts the server the first time a chat needs it. The extension
+then downloads the binary for your platform from this repository's releases, the same one
+the plugin runs, and runs it only if its SHA-256 matches the one in the extension. A binary
+that does not match is never kept.
+
+The binary lives in the extension's storage folder,
+`User/globalStorage/founderealm.founderealm-lens/<release>/` inside VS Code's data folder:
+`~/Library/Application Support/Code/` on macOS, `~/.config/Code/` on Linux and
+`%APPDATA%\Code\` on Windows. Only the release in use is kept.
+
+There is no shell hook in VS Code, which gives extensions none. An agent there can still
+run the binary from a terminal, and an answer read that way can be cut short; the lens
+tools give it whole.
+
 ### Use
 
 Ask your agent about the code. It starts with `lens_status`, which says whether there is a
@@ -119,8 +141,9 @@ and you commit those files with your code.
 
 ### Update
 
-When the plugin updates, the next session uses the new version, and a new grammar collection
-arrives the same way, without a plugin update. Nothing in your repository changes until the
+When the plugin updates, the next session uses the new version. When the extension updates,
+VS Code fetches the new binary the next time it starts the server. A new grammar collection
+arrives without either of them updating. Nothing in your repository changes until the
 next capture, which rebuilds the map; your settings, corrections and saved queries are never
 written over. `lens_status` shows the kernel and collection in use beside the ones that wrote
 the map, and the agent captures again when they differ.

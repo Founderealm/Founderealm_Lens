@@ -2,5 +2,10 @@
 # Lens itself is a compiled binary from this repository's releases, which GitHub's language
 # count does not see.
 server/lens linguist-detectable=false
+server/lens.cmd linguist-detectable=false
 hooks/door.sh linguist-detectable=false
 extension.js linguist-detectable=false
+
+# The Windows launcher is a batch file, which cmd.exe reads reliably only with CRLF line
+# endings, whatever machine checks it out.
+server/lens.cmd text eol=crlf

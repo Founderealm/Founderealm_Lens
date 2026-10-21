@@ -1,3 +1,4 @@
 # A local build of the binary, which the launcher prefers over a release.
 /server/founderealm-lens
+/server/founderealm-lens.exe
 **/.DS_Store

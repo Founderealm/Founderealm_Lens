@@ -7,5 +7,5 @@ hooks/door.sh linguist-detectable=false
 extension.js linguist-detectable=false
 
 # The Windows launcher is a batch file, which cmd.exe reads reliably only with CRLF line
-# endings, whatever machine checks it out.
-server/lens.cmd text eol=crlf
+# endings: they are committed as they are, and git never converts them.
+*.cmd -text

@@ -69,10 +69,12 @@ move /y "%part%" "%bin%" >nul || goto fail
 endlocal & "%bin%" %*
 exit /b
 
-rem Stops with the message in msg, leaving no partial download behind.
+rem Stops with the message in msg, leaving no partial download behind. The message is printed
+rem by delayed expansion, so a path in it holding & or ^ prints as it is.
 :fail
 if defined part if exist "%part%" del "%part%"
->&2 echo founderealm-lens: %msg%
+setlocal EnableDelayedExpansion
+>&2 echo founderealm-lens: !msg!
 exit /b 1
 
 rem The file's SHA-256 into got: certutil prints it on its second line, its bytes parted by

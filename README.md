@@ -2,11 +2,11 @@
 
 **Your whole codebase as one SQL database for Claude Code and VS Code, in any language. Like grep, with joins.**
 
-Version 2.2.0, a public beta, the same number in the plugin and the VS Code extension.
-Tested by hand on macOS (Apple silicon). Every release is also built and checked on Linux
-(x86_64 and arm64) and Windows (x86_64) before it is published; Linux (arm64) was tested by
-hand with earlier versions, and the other two have not yet been tested by hand. The VS Code
-extension has been tested by hand on macOS only.
+Version 2.2.1, a public beta, the same number in the plugin and the VS Code extension.
+Tested by hand on macOS (Apple silicon), and in Claude Code on Windows (x86_64). Every
+release is also built and checked on Linux (x86_64 and arm64) and Windows (x86_64) before it
+is published; Linux (arm64) was tested by hand with earlier versions, and Linux (x86_64) has
+not yet been tested by hand. The VS Code extension has been tested by hand on macOS only.
 
 ## What
 
@@ -74,8 +74,9 @@ Everything stays on your machine, in the repository you are working in.
 - It never sends the repository's contents anywhere.
 - In the repository it writes nothing outside `founderealm/`, and it asks before it writes
   that folder the first time. Outside the repository it keeps only the downloaded binary:
-  in Claude Code's data folder for the plugin (or `~/.cache/founderealm-lens`), or in VS
-  Code's storage folder for the extension.
+  in Claude Code's data folder for the plugin (or `~/.cache/founderealm-lens`, and
+  `%LOCALAPPDATA%\founderealm-lens` on Windows), or in VS Code's storage folder for the
+  extension.
 - It ships no answers of its own. It carries no corrections for any language, not even ones
   true of every program in a language, and decides nothing about a codebase before it has
   read it. Every row comes from the code and the grammar that read it.

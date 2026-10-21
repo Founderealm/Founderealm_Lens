@@ -1,1 +1,1 @@
-Ask the lens through its tools, not the shell: lens_query with your SELECT. Same map, the whole answer, and the user sees it. lens_status has three questions ready to ask; recipes are in the founderealm-lens skill.
+Ask the lens through its tools, not the shell: lens_query with your SELECT. Same map, the whole answer, and the user sees it. lens_status has questions ready to ask; a menu of more is in the founderealm-lens skill.

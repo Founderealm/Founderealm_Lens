@@ -2,11 +2,11 @@
 
 **Your whole codebase as one SQL database for Claude Code and VS Code, in any language. Like grep, with joins.**
 
-Version 2.0.0-beta.3, a public beta; the VS Code extension carries it as 2.1.3, since its
-marketplace takes only plain version numbers. Tested by hand on macOS (Apple silicon) and
-Linux (arm64). Every release is also built and checked on Linux (x86_64) and Windows
-(x86_64) before it is published, but those two have not yet been tested by hand. The VS
-Code extension has been tested by hand on macOS only.
+Version 2.2.0, a public beta, the same number in the plugin and the VS Code extension.
+Tested by hand on macOS (Apple silicon). Every release is also built and checked on Linux
+(x86_64 and arm64) and Windows (x86_64) before it is published; Linux (arm64) was tested by
+hand with earlier versions, and the other two have not yet been tested by hand. The VS Code
+extension has been tested by hand on macOS only.
 
 ## What
 
@@ -15,15 +15,20 @@ extension. It reads every file in a repository once with
 [tree-sitter](https://tree-sitter.github.io/) and writes what it reads into one local
 [DuckDB](https://duckdb.org/) database, the map:
 
-- every file, read or skipped, with the reason it was skipped;
+- every folder and file, as one tree, each file read or skipped, with the reason it was
+  skipped;
 - every named syntax node, with its type, position and text;
 - every definition, call, scope, comment and string that each language's own tree-sitter
-  queries mark.
+  queries mark;
+- a catalogue of the docs: each Markdown file and each section in it, with its title and
+  place, and where the docs name the code. The docs themselves are never copied in: they
+  are read from their files when asked.
 
 Your agent then asks the map questions in SQL instead of searching by hand: where a name is
-defined, everything that calls it, what a file holds, what a change to it touches, what
-nothing uses, what the docs say about it, and a diagram of who calls whom. Its skill, in
-both, gives the agent a written-out query for each of these.
+defined, everything that calls it, what a file or a folder holds, what a change to it
+touches, what nothing uses, what the docs say about it, a doc's table of contents, and a
+diagram of who calls whom. Its skill, in both, gives the agent a written-out query for each
+of these.
 
 It works in any language tree-sitter has a grammar for, and knows nothing about any of them
 itself: what it reads comes from each language's grammar and that grammar's own queries.
@@ -81,8 +86,8 @@ Whenever an agent would otherwise search: before changing a function, to see eve
 that calls it; when looking for code that nothing uses; when learning a repository it has
 never seen; when it needs to know what the docs or the config say. A capture brings the map
 up to the present and is cheap, so the agent captures again whenever the files may have
-changed. Capture takes longer the larger the repository; it has been tested on repositories
-of up to about 26,000 files.
+changed. Capture takes longer the larger the repository; this version has been tested on
+repositories of up to 8,367 files.
 
 ## How
 
@@ -121,12 +126,13 @@ tools give it whole.
 ### Use
 
 Ask your agent about the code. It starts with `lens_status`, which says whether there is a
-map, what it covers, whether it holds together, and, where your languages' grammars mark
-definitions, three questions about your repository ready to ask. Before the first capture writes `founderealm/`, it asks you.
+map, what it covers, whether it holds together, and questions about your repository ready
+to ask, its biggest doc's table of contents among them. Before the first capture writes
+`founderealm/`, it asks you.
 
 | tool | what it does |
 |---|---|
-| `lens_status` | whether there is a map, how old it is, what it covers, whether it holds together, every table with its columns and caveat, and three questions ready to ask |
+| `lens_status` | whether there is a map, how old it is, what it covers, whether it holds together, every table with its columns and caveat, and questions ready to ask, the biggest doc's contents among them |
 | `lens_query` | one SELECT over the map, or the name of a saved query |
 | `lens_capture` | bring the map up to the present; the first one plants `founderealm/`, once you approve |
 
@@ -134,9 +140,9 @@ definitions, three questions about your repository ready to ask. Before the firs
 
 No tool can carry the right settings for every codebase, so the agent using the lens tunes
 it for yours, in files under `founderealm/`: which folders and files are read and by which
-grammar (`terrain.toml`), what a grammar's queries miss in this codebase
-(`queries/<language>/<kind>.scm`), and the questions asked often enough to keep
-(`lenses/<name>.sql`). `lens_status` says where each is needed, and the skill's "fog test"
+grammar, and how the docs are catalogued (`terrain.toml`), what a grammar's queries miss in
+this codebase (`queries/<language>/<kind>.scm`), and the questions asked often enough to
+keep (`lenses/<name>.sql`). `lens_status` says where each is needed, and the skill's "fog test"
 finds the calls a language's own queries do not mark. The agent tells you what it changed,
 and you commit those files with your code.
 
